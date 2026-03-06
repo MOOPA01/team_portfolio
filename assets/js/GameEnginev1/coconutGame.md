@@ -20,13 +20,12 @@ permalink: /gamify/coconut
     //import coconutL3 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL3.js";
     import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
 
-    const gameLevelClasses = [coconutL0, coconutL1, /*coconutL2, coconutL3*/];
+    const gameLevelClasses = [coconutL0, coconutL1,];
 
     // Web Server Environment datas
     const environment = {
         path: "{{site.baseurl}}",
         pythonURI: pythonURI,
-        javaURI: javaURI,
         fetchOptions: fetchOptions,
         gameContainer: document.getElementById("gameContainer"),
         gameCanvas: document.getElementById("gameCanvas"),

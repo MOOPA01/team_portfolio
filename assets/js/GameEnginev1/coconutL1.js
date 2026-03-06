@@ -3,7 +3,7 @@ import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
 import Barrier from './essentials/Barrier.js';
 
-class GameLevelCustom {
+class CoconutL1 {
     constructor(gameEnv) {
         const path = gameEnv.path;
         const width = gameEnv.innerWidth;
@@ -168,4 +168,4 @@ this.classes = [      { class: GameEnvBackground, data: bgData },
     }
 }
 
-export const gameLevelClasses = [GameLevelCustom];
+export default CoconutL1;
