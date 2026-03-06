@@ -38,7 +38,7 @@ class GameLevelCustom {
 
         const npcData1 = {
             id: 'Imposter',
-            greeting: 'Hey! Your not the real Kirby, I am!',
+            greeting: 'Hellow fellow traveller! Are you also looking for the magic coconut? Well, good luck!',
             src: path + "/images/gamebuilder/sprites/kirby.png",
             SCALE_FACTOR: 4,
             ANIMATION_RATE: 50,
