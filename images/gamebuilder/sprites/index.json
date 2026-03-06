@@ -3,6 +3,7 @@
     { "name": "Kirby", "src": "kirby.png", "rows": 1, "cols": 13 },
     { "name": "Pew", "src": "pew.png", "rows": 4, "cols": 4 },
     { "name": "Slime", "src": "slime.png", "rows": 4, "cols": 4 },
-    { "name": "Ufos", "src": "ufos.png", "rows": 4, "cols": 3 }
+    { "name": "Ufos", "src": "ufos.png", "rows": 4, "cols": 3 },
+    { "name": "Dew", "src": "ufos.png", "rows": 4, "cols": 3 }
 
 ]

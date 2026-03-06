@@ -1,4 +1,9 @@
 [
   { "name": "Alien Planet", "src": "alien_planet.jpg" },
-  { "name": "Sky kingdom", "src": "clouds.jpg" }
+  { "name": "Sky kingdom", "src": "clouds.jpg" },
+  { "name": "Desert", "src": "desert.png" },
+  { "name": "Island", "src": "island.png" },
+  { "name": "Boss Map", "src": "map_boss.png" },
+  { "name": "Mountain", "src": "mountain.png" },
+  { "name": "WSAD", "src": "wasd.png" }
 ]
