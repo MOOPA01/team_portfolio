@@ -74,14 +74,14 @@ class GameLevelFormative1rishabshyamal {
 
         const mysteryBoxData = {
             id: 'MysteryBox',
-            src: path + "/images/gamify/box.png",
+            src: path + "/images/gamebuilder/bg/chest.png",
             SCALE_FACTOR: 8,
             ANIMATION_RATE: 50,
             INIT_POSITION: { x: 600, y: 200 },
-            pixels: { height: 225, width: 225 },
-            orientation: { rows: 4, columns: 4 },
-            down: { row: 0, start: 0, columns: 3 },
-            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 }
+            orientation: { rows: 1, columns: 2 },
+            down: { row: 0, start: 0, columns: 1 }, // Represents the closed chest
+            open: { row: 0, start: 1, columns: 1 }, // Represents the open chest
+            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
         };
 
         const dbarrier_1 = {
