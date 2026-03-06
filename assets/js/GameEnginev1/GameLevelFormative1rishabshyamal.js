@@ -13,6 +13,7 @@
 import GameEnvBackground from '/assets/js/GameEnginev1/essentials/GameEnvBackground.js';
 import Player from '/assets/js/GameEnginev1/essentials/Player.js';
 import Npc from '/assets/js/GameEnginev1/essentials/Npc.js';
+import MysteryBox from '/assets/js/GameEnginev1/MysteryBox.js';
 import Barrier from '/assets/js/GameEnginev1/essentials/Barrier.js';
 
 class GameLevelFormative1rishabshyamal {
@@ -73,31 +74,14 @@ class GameLevelFormative1rishabshyamal {
 
         const mysteryBoxData = {
             id: 'MysteryBox',
-            src: path + "/images/gamebuilder/sprites/slime.png",
+            src: path + "/images/gamify/box.png",
             SCALE_FACTOR: 8,
             ANIMATION_RATE: 50,
             INIT_POSITION: { x: 600, y: 200 },
             pixels: { height: 225, width: 225 },
             orientation: { rows: 4, columns: 4 },
             down: { row: 0, start: 0, columns: 3 },
-            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            /**
-             * Interaction: Collision
-             * This method is triggered when the player collides with this object.
-             * It is called from the game loop during collision checks.
-             */
-            reaction: function() {
-                // Observable Reaction: Alert and Teleport
-                // The object's position property is updated, causing it to move on the screen.
-                alert("You found the Mystery Box! It moved!");
-                
-                // Update object property (position) during execution
-                const myself = gameEnv.gameObjects.find(obj => obj.spriteData.id === 'MysteryBox');
-                if (myself) {
-                    myself.position.x = Math.random() * (width - 100);
-                    myself.position.y = Math.random() * (height - 100);
-                }
-            }
+            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 }
         };
 
         const dbarrier_1 = {
@@ -126,7 +110,7 @@ class GameLevelFormative1rishabshyamal {
 this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
       { class: Npc, data: npcData1 },
-      { class: Npc, data: mysteryBoxData },
+      { class: MysteryBox, data: mysteryBoxData },
       { class: Barrier, data: dbarrier_1 },
       { class: Barrier, data: dbarrier_2 },
       { class: Barrier, data: dbarrier_3 },
