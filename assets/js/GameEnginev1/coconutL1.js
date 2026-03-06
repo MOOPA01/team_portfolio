@@ -11,13 +11,13 @@ class GameLevelCustom {
 
         const bgData = {
             name: "custom_bg",
-            src: path + "/images/f1/desert.png",
+            src: path + "/images/gamebuilder/bg/desert.bg",
             pixels: { height: 772, width: 1134 }
         };
 
         const playerData = {
             id: 'playerData',
-            src: path + "/images/f1/dew.png",
+            src: path + "/images/gamebuilder/sprites/dew.png",
             SCALE_FACTOR: 8,
             STEP_FACTOR: 100,
             ANIMATION_RATE: 50,
