@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SITE_BASE = "{{ site.baseurl }}" || "";
     const assets = {
         bg: {
-            desert: { src: "/images/gamify/desert.png", h: 580, w: 1038 },
+            desert: { src: "/images/gamebuilder/bg/desert.png", h: 772, w: 1134 },
             alien: { src: "/images/gamebuilder/bg/alien_planet.jpg", h: 600, w: 1000 },
             skykingdom: { src: "/images/gamebuilder/bg/clouds.jpg", h: 720, w: 1280 }
         },

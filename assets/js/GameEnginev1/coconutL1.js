@@ -11,7 +11,7 @@ class GameLevelCustom {
 
         const bgData = {
             name: "custom_bg",
-            src: path + "/images/gamebuilder/bg/desert.bg",
+            src: path + "/images/gamebuilder/bg/desert.png",
             pixels: { height: 772, width: 1134 }
         };
 

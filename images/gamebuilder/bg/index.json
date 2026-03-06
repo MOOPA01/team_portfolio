@@ -5,6 +5,6 @@
   { "name": "Island", "src": "island.png" },
   { "name": "Boss Map", "src": "map_boss.png" },
   { "name": "Mountain", "src": "mountain.png" },
-  { "name": "WSAD", "src": "wasd.png" }
-  
+  { "name": "WASD", "src": "wasd.png" }
+
 ]
