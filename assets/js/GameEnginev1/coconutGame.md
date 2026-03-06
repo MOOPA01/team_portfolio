@@ -13,11 +13,13 @@ permalink: /gamify/coconut
 
     // Adventure Game assets locations
     import Game from "/assets/js/GameEnginev1/essentials/Game.js";
-    import coconutL0 from "/assets/js/coconutGame/coconutL0.js";
-    import coconutL1 from "/assets/js/coconutGame/coconutL1.js";
-    import coconutL2 from "/assets/js/coconutGame/coconutL2.js";
-    import coconutL3 from "/assets/js/coconutGame/coconutL3.js";
-    import { pythonURI, javaURI, fetchOptions } from '/assets/js/api/config.js';
+    import Core from "{{site.baseurl}}/assets/js/GameEnginev1/essentials/Game.js";
+    import GameControl from "{{site.baseurl}}/assets/js/GameEnginev1/essentials/GameControl.js";
+    import coconutL0 from "{{site.baseurl}}/assets/js/coconutGame/coconutL0.js";
+    import coconutL1 from "{{site.baseurl}}/assets/js/coconutGame/coconutL1.js";
+    import coconutL2 from "{{site.baseurl}}/assets/js/coconutGame/coconutL2.js";
+    import coconutL3 from "{{site.baseurl}}/assets/js/coconutGame/coconutL3.js";
+    import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
 
     const gameLevelClasses = [coconutL0, coconutL1, coconutL2, coconutL3];
 
