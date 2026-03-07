@@ -59,7 +59,7 @@ class CoconutL1 {
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
         const dbarrier_1 = {
-            id: 'dbarrier_1', x: 400, y: 119, width: 40, height: 450, visible: true /* BUILDER_DEFAULT */,
+            id: 'dbarrier_1', x: 1400, y: 119, width: 40, height: 450, visible: true /* BUILDER_DEFAULT */,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
