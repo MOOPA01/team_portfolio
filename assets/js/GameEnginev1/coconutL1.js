@@ -59,7 +59,7 @@ class CoconutL1 {
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
         const dbarrier_1 = {
-            id: 'dbarrier_1', x: 164, y: 119, width: 40, height: 478, visible: true /* BUILDER_DEFAULT */,
+            id: 'dbarrier_1', x: 400, y: 119, width: 40, height: 450, visible: true /* BUILDER_DEFAULT */,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
@@ -82,19 +82,13 @@ class CoconutL1 {
             fromOverlay: true
         };
 
-        const dbarrier_5 = {
-            id: 'dbarrier_5', x: 162, y: 597, width: 42, height: 88, visible: true /* BUILDER_DEFAULT */,
-            hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
-            fromOverlay: true
-        };
 this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
       { class: Npc, data: npcData1 },
       { class: Barrier, data: dbarrier_1 },
       { class: Barrier, data: dbarrier_2 },
       { class: Barrier, data: dbarrier_3 },
-      { class: Barrier, data: dbarrier_4 },
-      { class: Barrier, data: dbarrier_5 }
+      { class: Barrier, data: dbarrier_4 }
 ];
 
         /* BUILDER_ONLY_START */
