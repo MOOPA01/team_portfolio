@@ -23,7 +23,7 @@ class CoconutL0 {
 
         const bgData = {
             name: "custom_bg",
-            src: path + "/images/gamebuilder/bg/image.png",
+            src: path + "/images/gamebuilder/bg/mountain.png",
             pixels: { height: 422, width: 600 }
         };
 
