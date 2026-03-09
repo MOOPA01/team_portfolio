@@ -23,7 +23,7 @@ class Coconutl3 {
 
         const bgData = {
             name: "custom_bg",
-            src: path + "/images/gamebuilder/bg/map_boss.jpg",
+            src: path + "/images/gamebuilder/bg/map_boss.png",
             pixels: { height: 720, width: 1280 }
         };
 
@@ -50,7 +50,7 @@ class Coconutl3 {
 
         const npcData1 = {
             id: 'coconut',
-            greeting: 'Congratulations, you have found the spaceship!',
+            greeting: 'Congratulations, you have found the Golden Coconut!',
             src: path + "/images/gamebuilder/sprites/ufos.png",
             SCALE_FACTOR: 2,
             ANIMATION_RATE: 50,
