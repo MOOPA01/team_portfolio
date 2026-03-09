@@ -38,7 +38,7 @@ class CoconutL1 {
 
         const npcData1 = {
             id: 'Imposter',
-            greeting: 'Hellow fellow traveller! Are you also looking for the magic coconut? Well, good luck!',
+            greeting: 'Hey! Youre not the real Kirby, I am!',
             src: path + "/images/gamebuilder/sprites/kirby.png",
             SCALE_FACTOR: 4,
             ANIMATION_RATE: 50,
@@ -54,7 +54,8 @@ class CoconutL1 {
             upLeft: { row: Math.min(2, 1 - 1), start: 0, columns: 3 },
             downLeft: { row: 0, start: 0, columns: 3 },
             hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            dialogues: ['Hey! Youre not the real Kirby, I am!'],
+            dialogues: ['Hello fellow traveller! Are you also looking for the magic coconut? Well, good luck!'
+            ],
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
