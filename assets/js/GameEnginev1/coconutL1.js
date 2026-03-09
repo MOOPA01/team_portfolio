@@ -54,7 +54,7 @@ class CoconutL1 {
             upLeft: { row: Math.min(2, 1 - 1), start: 0, columns: 3 },
             downLeft: { row: 0, start: 0, columns: 3 },
             hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            dialogues: ['Hey! Your not the real Kirby, I am!'],
+            dialogues: ['Hey! Youre not the real Kirby, I am!'],
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
@@ -80,7 +80,6 @@ this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
       { class: Npc, data: npcData1 },
       { class: Barrier, data: dbarrier_1 },
-      { class: Barrier, data: dbarrier_2 },
       { class: Barrier, data: dbarrier_3 },
       { class: Barrier, data: dbarrier_4 }
 ];
