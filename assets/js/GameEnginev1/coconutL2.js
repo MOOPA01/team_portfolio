@@ -15,7 +15,7 @@ import Player from '/assets/js/GameEnginev1/essentials/Player.js';
 import Npc from '/assets/js/GameEnginev1/essentials/Npc.js';
 import Barrier from '/assets/js/GameEnginev1/essentials/Barrier.js';
 
-class GameLevelDew {
+class CoconutL2 {
     constructor(gameEnv) {
         const path = gameEnv.path;
         const width = gameEnv.innerWidth;
@@ -141,4 +141,4 @@ this.classes = [      { class: GameEnvBackground, data: bgData },
     }
 }
 
-export default GameLevelDew;
+export default CoconutL2;
