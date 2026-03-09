@@ -64,12 +64,6 @@ class CoconutL1 {
             fromOverlay: true
         };
 
-        const dbarrier_2 = {
-            id: 'dbarrier_2', x: 329, y: 9, width: 49, height: 462, visible: true /* BUILDER_DEFAULT */,
-            hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
-            fromOverlay: true
-        };
-
         const dbarrier_3 = {
             id: 'dbarrier_3', x: 376, y: 402, width: 490, height: 67, visible: true /* BUILDER_DEFAULT */,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
