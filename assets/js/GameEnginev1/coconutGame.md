@@ -11,16 +11,16 @@ permalink: /gamify/coconut
 
 <script type="module">
 
-    // Adventure Game assets locations
+    // Game assets locations
     import Core from "{{site.baseurl}}/assets/js/GameEnginev1/essentials/Game.js";
     import GameControl from "{{site.baseurl}}/assets/js/GameEnginev1/essentials/GameControl.js";
     import coconutL0 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL0.js";
     import coconutL1 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL1.js";
     //import coconutL2 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL2.js";
-    //import coconutL3 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL3.js";
+    import coconutL3 from "{{site.baseurl}}/assets/js/GameEnginev1/coconutL3.js";
     import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
 
-    const gameLevelClasses = [coconutL0, coconutL1, /*coconutL2*/];
+    const gameLevelClasses = [coconutL0, coconutL1, /*coconutL2*/, coconutL3];
 
     // Web Server Environment datas
     const environment = {
@@ -45,6 +45,6 @@ permalink: /gamify/coconut
         }
     }
 
-    // Launch Adventure Game
+    // Launch Game
     const game = Core.main(environment);
 </script>
