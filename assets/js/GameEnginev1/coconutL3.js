@@ -70,9 +70,16 @@ class Coconutl3 {
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
+
+        const dbarrier_1 = {
+            id: 'dbarrier_1', x: 3, y: 260, width: 970, height: 10, visible: true,
+            hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
+            fromOverlay: true
+        };
 this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
-      { class: Npc, data: npcData1 }
+      //{ class: Npc, data: npcData1 },
+      { class: Barrier, data: dbarrier_1 }
 ];
 
         
