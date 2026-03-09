@@ -48,10 +48,10 @@ class Coconutl3 {
             keypress: { up: 87, left: 65, down: 83, right: 68 }
             };
 
-        const npcData1 = {
+        const golden_coconut = {
             id: 'coconut',
             greeting: 'Congratulations, you have found the Golden Coconut!',
-            src: path + "/images/gamebuilder/sprites/ufos.png",
+            src: path + "/images/gamebuilder/sprites/golden_coconut.png",
             SCALE_FACTOR: 2,
             ANIMATION_RATE: 50,
             INIT_POSITION: { x: 405, y: 102 },
@@ -78,7 +78,7 @@ class Coconutl3 {
         };
 this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
-      //{ class: Npc, data: npcData1 },
+      { class: Npc, data: golden_coconut },
       { class: Barrier, data: dbarrier_1 }
 ];
 
