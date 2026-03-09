@@ -70,6 +70,28 @@ class GameLevelDew {
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
+        const npcData2 = {
+            id: 'Shark',
+            greeting: 'Wrong Way',
+            src: path + "/images/gamebuilder/sprites/shark.png",
+            SCALE_FACTOR: 8,
+            ANIMATION_RATE: 20,
+            INIT_POSITION: { x: 412, y: 256 },
+            pixels: { height: 225, width: 225 },
+            orientation: { rows: 4, columns: 4 },
+            down: { row: 0, start: 0, columns: 3 },
+            right: { row: Math.min(1, 4 - 1), start: 0, columns: 3 },
+            left: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
+            up: { row: Math.min(3, 4 - 1), start: 0, columns: 3 },
+            upRight: { row: Math.min(3, 4 - 1), start: 0, columns: 3 },
+            downRight: { row: Math.min(1, 4 - 1), start: 0, columns: 3 },
+            upLeft: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
+            downLeft: { row: 0, start: 0, columns: 3 },
+            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
+            dialogues: ['Wrong Way!'],
+            reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
+            interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
+        };
         const dbarrier_1 = {
             id: 'dbarrier_1', x: 190, y: 218, width: 32, height: 162, visible: false,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
