@@ -44,7 +44,7 @@ class GameLevelDew {
             up: { row: 3, start: 0, columns: 3 },
             upLeft: { row: 2, start: 0, columns: 3, rotate: Math.PI/16 },
             upRight: { row: 3, start: 0, columns: 3, rotate: -Math.PI/16 },
-            hitbox: { widthPercentage: 0, heightPercentage: 0 },
+            hitbox: { widthPercentage: 20, heightPercentage: 20 },
             keypress: { up: 87, left: 65, down: 83, right: 68 }
             };
 
@@ -53,7 +53,7 @@ class GameLevelDew {
             greeting: 'Welcome',
             src: path + "/images/gamebuilder/sprites/slime.png",
             SCALE_FACTOR: 8,
-            ANIMATION_RATE: 50,
+            ANIMATION_RATE: 20,
             INIT_POSITION: { x: 627, y: 150 },
             pixels: { height: 225, width: 225 },
             orientation: { rows: 4, columns: 4 },
