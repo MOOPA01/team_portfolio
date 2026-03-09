@@ -52,9 +52,9 @@ class Coconutl3 {
             id: 'coconut',
             greeting: 'Congratulations, you have found the Golden Coconut!',
             src: path + "/images/gamebuilder/sprites/Golden_Coconut.png",
-            SCALE_FACTOR: 2,
+            SCALE_FACTOR: 5,
             ANIMATION_RATE: 50,
-            INIT_POSITION: { x: 405, y: 102 },
+            INIT_POSITION: { x: 472, y: 102 },
             pixels: { height: 500, width: 500 },
             orientation: { rows: 4, columns: 3 },
             down: { row: 0, start: 0, columns: 3 },
@@ -65,7 +65,30 @@ class Coconutl3 {
             downRight: { row: Math.min(1, 4 - 1), start: 0, columns: 3 },
             upLeft: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
             downLeft: { row: 0, start: 0, columns: 3 },
-            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
+            //hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
+            dialogues: ['Congratulations, you have found the spaceship!'],
+            reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
+            interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
+        };
+
+        const guardian_slime = {
+            id: 'slime',
+            greeting: 'Congratulations, you have found the Golden Coconut!',
+            src: path + "/images/gamebuilder/sprites/slime.png",
+            SCALE_FACTOR: 10,
+            ANIMATION_RATE: 50,
+            INIT_POSITION: { x: 450, y: 300 },
+            pixels: { height: 225, width: 225 },
+            orientation: { rows: 4, columns: 4 },
+            down: { row: 0, start: 0, columns: 3 },
+            right: { row: Math.min(1, 4 - 1), start: 0, columns: 3 },
+            left: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
+            up: { row: Math.min(3, 4 - 1), start: 0, columns: 3 },
+            upRight: { row: Math.min(3, 4 - 1), start: 0, columns: 3 },
+            downRight: { row: Math.min(1, 4 - 1), start: 0, columns: 3 },
+            upLeft: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
+            downLeft: { row: 0, start: 0, columns: 3 },
+            //hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
             dialogues: ['Congratulations, you have found the spaceship!'],
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
@@ -79,6 +102,7 @@ class Coconutl3 {
 this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
       { class: Npc, data: golden_coconut },
+      { class: Npc, data: guardian_slime },
       { class: Barrier, data: dbarrier_1 }
 ];
 
