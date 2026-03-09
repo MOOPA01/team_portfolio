@@ -38,7 +38,7 @@ class CoconutL1 {
 
         const npcData1 = {
             id: 'Imposter',
-            greeting: 'Hellow fellow traveller! Are you also looking for the magic coconut? Well, good luck!',
+            greeting: 'Hey! Youre not the real Kirby, I am!',
             src: path + "/images/gamebuilder/sprites/kirby.png",
             SCALE_FACTOR: 4,
             ANIMATION_RATE: 50,
@@ -54,18 +54,13 @@ class CoconutL1 {
             upLeft: { row: Math.min(2, 1 - 1), start: 0, columns: 3 },
             downLeft: { row: 0, start: 0, columns: 3 },
             hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            dialogues: ['Hey! Your not the real Kirby, I am!'],
+            dialogues: ['Hello fellow traveller! Are you also looking for the magic coconut? Well, good luck!'
+            ],
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
         const dbarrier_1 = {
             id: 'dbarrier_1', x: 1400, y: 119, width: 40, height: 450, visible: true /* BUILDER_DEFAULT */,
-            hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
-            fromOverlay: true
-        };
-
-        const dbarrier_2 = {
-            id: 'dbarrier_2', x: 329, y: 9, width: 49, height: 462, visible: true /* BUILDER_DEFAULT */,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
@@ -86,7 +81,6 @@ this.classes = [      { class: GameEnvBackground, data: bgData },
       { class: Player, data: playerData },
       { class: Npc, data: npcData1 },
       { class: Barrier, data: dbarrier_1 },
-      { class: Barrier, data: dbarrier_2 },
       { class: Barrier, data: dbarrier_3 },
       { class: Barrier, data: dbarrier_4 }
 ];
