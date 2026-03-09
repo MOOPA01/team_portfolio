@@ -51,7 +51,7 @@ class Coconutl3 {
         const golden_coconut = {
             id: 'coconut',
             greeting: 'Congratulations, you have found the Golden Coconut!',
-            src: path + "/images/gamebuilder/sprites/golden_coconut.png",
+            src: path + "/images/gamebuilder/sprites/Golden_Coconut.png",
             SCALE_FACTOR: 2,
             ANIMATION_RATE: 50,
             INIT_POSITION: { x: 405, y: 102 },
