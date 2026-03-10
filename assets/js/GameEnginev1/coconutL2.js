@@ -66,60 +66,60 @@ class CoconutL2 {
             upLeft: { row: Math.min(2, 4 - 1), start: 0, columns: 3 },
             downLeft: { row: 0, start: 0, columns: 3 },
             hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            dialogues: ['Welcome'],
+            dialogues: ['Well done player'],
             reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
         const dbarrier_1 = {
-            id: 'dbarrier_1', x: 190, y: 218, width: 32, height: 162, visible: false,
+            id: 'dbarrier_1', x: 190, y: 218, width: 32, height: 162, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_2 = {
-            id: 'dbarrier_2', x: 35, y: 50, width: 24, height: 315, visible: false,
+            id: 'dbarrier_2', x: 35, y: 50, width: 24, height: 315, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_3 = {
-            id: 'dbarrier_3', x: 94, y: 30, width: 219, height: 21, visible: false,
+            id: 'dbarrier_3', x: 94, y: 30, width: 219, height: 21, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_4 = {
-            id: 'dbarrier_4', x: 343, y: 36, width: 28, height: 57, visible: false,
+            id: 'dbarrier_4', x: 343, y: 36, width: 28, height: 57, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_5 = {
-            id: 'dbarrier_5', x: 251, y: 223, width: 140, height: 43, visible: false,
+            id: 'dbarrier_5', x: 251, y: 223, width: 140, height: 43, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_6 = {
-            id: 'dbarrier_6', x: 501, y: 228, width: 20, height: 143, visible: false,
+            id: 'dbarrier_6', x: 501, y: 228, width: 20, height: 143, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_7 = {
-            id: 'dbarrier_7', x: 379, y: 30, width: 112, height: 18, visible: false,
+            id: 'dbarrier_7', x: 379, y: 30, width: 112, height: 18, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_8 = {
-            id: 'dbarrier_8', x: 528, y: 215, width: 34, height: 7, visible: false,
+            id: 'dbarrier_8', x: 528, y: 215, width: 34, height: 7, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_9 = {
-            id: 'dbarrier_9', x: 574, y: 138, width: 20, height: 74, visible: false,
+            id: 'dbarrier_9', x: 574, y: 138, width: 20, height: 74, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
