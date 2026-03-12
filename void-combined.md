@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+---
+layout: post
+permalink: /rigved
+---
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
