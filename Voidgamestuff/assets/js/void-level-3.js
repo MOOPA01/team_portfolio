@@ -55,3 +55,5 @@ LEVELS.push({
     { x: 8*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8, vy: 0    },  // inner ring →
   ]
 });
+
+export default level3;

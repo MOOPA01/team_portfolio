@@ -1,39 +1,28 @@
 // =============================================================
-//  V.O.I.D.EXE  —  void-level-1.js
+//  V.O.I.D.EXE  —  void-level-1.js  (ES Module)
 // =============================================================
+import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS } from './void-core.js';
 
-// ── LEVEL 1 — COIN COLLECT ───────────────────────────────────
-
-LEVELS.push({
+registerLevel({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(3,  2, 1, 4),
-    ...rectWall(7,  4, 1, 4),
-    ...rectWall(11, 2, 1, 3),
-    ...rectWall(15, 3, 1, 4),
-    ...rectWall(18, 1, 1, 4),
-    ...rectWall(3,  9, 1, 5),
-    ...rectWall(7,  10, 1, 4),
-    ...rectWall(11, 9, 1, 5),
+    ...rectWall(3,  2, 1, 4), ...rectWall(7,  4, 1, 4),
+    ...rectWall(11, 2, 1, 3), ...rectWall(15, 3, 1, 4),
+    ...rectWall(18, 1, 1, 4), ...rectWall(3,  9, 1, 5),
+    ...rectWall(7,  10, 1, 4), ...rectWall(11, 9, 1, 5),
     ...rectWall(15, 9, 1, 4),
   ]),
   start: { x: 1, y: 1 },
   goal:  { x: 19, y: 12, w: 2, h: 3 },
   coins: [
-    { x: 5,  y: 2  }, { x: 9,  y: 2  }, { x: 13, y: 2  },
-    { x: 2,  y: 5  }, { x: 5,  y: 6  }, { x: 9,  y: 5  },
-    { x: 13, y: 5  }, { x: 17, y: 5  }, { x: 20, y: 4  },
-    { x: 2,  y: 8  }, { x: 5,  y: 9  }, { x: 9,  y: 8  },
-    { x: 13, y: 8  }, { x: 17, y: 8  }, { x: 20, y: 8  },
-    { x: 2,  y: 12 }, { x: 5,  y: 13 }, { x: 9,  y: 12 },
-    { x: 13, y: 13 }, { x: 17, y: 12 },
+    {x:5,y:2},{x:9,y:2},{x:13,y:2},
+    {x:2,y:5},{x:5,y:6},{x:9,y:5},{x:13,y:5},{x:17,y:5},{x:20,y:4},
+    {x:2,y:8},{x:5,y:9},{x:9,y:8},{x:13,y:8},{x:17,y:8},{x:20,y:8},
+    {x:2,y:12},{x:5,y:13},{x:9,y:12},{x:13,y:13},{x:17,y:12},
   ],
   enemies: []
 });
 
-
-// ── INTRO CUTSCENE ───────────────────────────────────────────
-
-const INTRO_SCENES = [
+export const INTRO_SCENES = [
   {
     label: '// SYSTEM BOOT — ANTIVIRUS PROTOCOL V.O.I.D.EXE',
     text:  'Initializing <span class="highlight">V.O.I.D.EXE</span>...\nVirtual Operations & Intrusion Defense\n\nSystem status: <span class="success">ONLINE</span>\nHost machine: NEXUS-7 Corporate Grid\nThreat level: <span class="danger">CRITICAL</span>'
@@ -56,16 +45,4 @@ const INTRO_SCENES = [
   },
 ];
 
-
-// ── startGame ────────────────────────────────────────────────
-
-function startGame() {
-  document.getElementById('overlay').classList.add('hidden');
-  showCutscene(INTRO_SCENES, () => {
-    level = 0; deaths = 0; totalCoins = 0;
-    timerActive = false;
-    initLevel(0);
-    running = true;
-    loop();
-  });
-}
+export default level1;

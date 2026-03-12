@@ -1,36 +1,29 @@
 // =============================================================
-//  V.O.I.D.EXE  —  void-level-4.js
+//  V.O.I.D.EXE  —  void-level-4.js  (ES Module)
 // =============================================================
+import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL,
+         showCutscene, showEndScreen } from './void-core.js';
 
-// ── LEVEL 4 — CROSS CORRIDOR ─────────────────────────────────
-
-LEVELS.push({
+registerLevel({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(1,  1, 8, 5),
-    ...rectWall(13, 1, 8, 5),
-    ...rectWall(1,  10, 8, 5),
-    ...rectWall(13, 10, 8, 5),
+    ...rectWall(1,1,8,5),   ...rectWall(13,1,8,5),
+    ...rectWall(1,10,8,5),  ...rectWall(13,10,8,5),
   ]),
   start: { x: 1, y: 7 },
   goal:  { x: 18, y: 6, w: 2, h: 4 },
   coins: [
-    { x: 3,  y: 7  }, { x: 6,  y: 7  },
-    { x: 15, y: 7  }, { x: 17, y: 7  },
-    { x: 10, y: 2  }, { x: 10, y: 4  },
-    { x: 10, y: 11 }, { x: 10, y: 13 },
+    {x:3,y:7},{x:6,y:7},{x:15,y:7},{x:17,y:7},
+    {x:10,y:2},{x:10,y:4},{x:10,y:11},{x:10,y:13},
   ],
   enemies: [
-    { x: 3*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8,  vy: 0    },
-    { x: 16*CELL+CELL/2, y: 7*CELL+CELL/2,  vx: -4.8, vy: 0    },
-    { x: 10*CELL+CELL/2, y: 2*CELL+CELL/2,  vx: 0,    vy: 4.8  },
-    { x: 10*CELL+CELL/2, y: 12*CELL+CELL/2, vx: 0,    vy: -4.8 },
-    { x: 9*CELL+CELL/2,  y: 6*CELL+CELL/2,  vx: 3.4,  vy: 3.4,  bounce: true },
-    { x: 12*CELL+CELL/2, y: 9*CELL+CELL/2,  vx: -3.4, vy: -3.4, bounce: true },
+    {x:3*CELL+CELL/2,  y:7*CELL+CELL/2,  vx:4.8,  vy:0   },
+    {x:16*CELL+CELL/2, y:7*CELL+CELL/2,  vx:-4.8, vy:0   },
+    {x:10*CELL+CELL/2, y:2*CELL+CELL/2,  vx:0,    vy:4.8 },
+    {x:10*CELL+CELL/2, y:12*CELL+CELL/2, vx:0,    vy:-4.8},
+    {x:9*CELL+CELL/2,  y:6*CELL+CELL/2,  vx:3.4,  vy:3.4,  bounce:true},
+    {x:12*CELL+CELL/2, y:9*CELL+CELL/2,  vx:-3.4, vy:-3.4, bounce:true},
   ]
 });
-
-
-// ── OUTRO CUTSCENE ───────────────────────────────────────────
 
 const OUTRO_SCENES = [
   {
@@ -59,12 +52,11 @@ const OUTRO_SCENES = [
   },
 ];
 
-
-// ── showEndingCutscene ────────────────────────────────────────
-
-function showEndingCutscene() {
-  running = false;
+// This is passed to initGame() as onEndingCutscene
+export function showEndingCutscene() {
   showCutscene(OUTRO_SCENES, () => {
     showEndScreen();
   });
 }
+
+export default level4;
