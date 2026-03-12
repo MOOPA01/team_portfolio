@@ -1,6 +1,6 @@
 ---
 layout: null
-permalink: /game/
+permalink: /void/
 ---
 <!DOCTYPE html>
 <html lang="en">
