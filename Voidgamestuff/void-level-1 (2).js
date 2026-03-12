@@ -1,19 +1,8 @@
 // =============================================================
 //  V.O.I.D.EXE  —  void-level-1.js
-//  Place at: assets/js/void-level-1.js
-//
-//  Contains:
-//    · Level 1 map data (Coin Collect — no enemies)
-//    · INTRO_SCENES cutscene array
-//    · startGame()
-//    · startSpeedrun()
-//
-//  Requires void-core.js to be loaded first.
 // =============================================================
 
 // ── LEVEL 1 — COIN COLLECT ───────────────────────────────────
-// Open grid with scattered walls creating light corridors.
-// No enemies. Player learns movement and coin collection.
 
 LEVELS.push({
   walls: buildBorderWalls(COLS, ROWS).concat([
@@ -27,10 +16,8 @@ LEVELS.push({
     ...rectWall(11, 9, 1, 5),
     ...rectWall(15, 9, 1, 4),
   ]),
-
   start: { x: 1, y: 1 },
   goal:  { x: 19, y: 12, w: 2, h: 3 },
-
   coins: [
     { x: 5,  y: 2  }, { x: 9,  y: 2  }, { x: 13, y: 2  },
     { x: 2,  y: 5  }, { x: 5,  y: 6  }, { x: 9,  y: 5  },
@@ -40,7 +27,6 @@ LEVELS.push({
     { x: 2,  y: 12 }, { x: 5,  y: 13 }, { x: 9,  y: 12 },
     { x: 13, y: 13 }, { x: 17, y: 12 },
   ],
-
   enemies: []
 });
 
@@ -77,21 +63,9 @@ function startGame() {
   document.getElementById('overlay').classList.add('hidden');
   showCutscene(INTRO_SCENES, () => {
     level = 0; deaths = 0; totalCoins = 0;
-    speedrunMode = false; speedrunDeaths = 0; levelTimes = [];
+    timerActive = false;
     initLevel(0);
     running = true;
     loop();
   });
-}
-
-
-// ── startSpeedrun ────────────────────────────────────────────
-
-function startSpeedrun() {
-  document.getElementById('overlay').classList.add('hidden');
-  level = 0; deaths = 0; totalCoins = 0;
-  speedrunMode = true; speedrunDeaths = 0; levelTimes = [];
-  initLevel(0);
-  running = true;
-  loop();
 }

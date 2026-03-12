@@ -1,46 +1,29 @@
 // =============================================================
 //  V.O.I.D.EXE  —  void-level-4.js
-//  Place at: assets/js/void-level-4.js
-//
-//  Contains:
-//    · Level 4 map data (Cross Corridor) — FINAL LEVEL
-//    · OUTRO_SCENES cutscene array
-//    · showEndingCutscene()
-//
-//  Requires void-core.js to be loaded first.
 // =============================================================
 
 // ── LEVEL 4 — CROSS CORRIDOR ─────────────────────────────────
-// Four corner blocks force player through a cross-shaped corridor.
-// Bouncers at the intersection, sweepers in both arms.
 
 LEVELS.push({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(1,  1, 8, 5),   // top-left block
-    ...rectWall(13, 1, 8, 5),   // top-right block
-    ...rectWall(1,  10, 8, 5),  // bottom-left block
-    ...rectWall(13, 10, 8, 5),  // bottom-right block
+    ...rectWall(1,  1, 8, 5),
+    ...rectWall(13, 1, 8, 5),
+    ...rectWall(1,  10, 8, 5),
+    ...rectWall(13, 10, 8, 5),
   ]),
-
   start: { x: 1, y: 7 },
   goal:  { x: 18, y: 6, w: 2, h: 4 },
-
   coins: [
-    { x: 3,  y: 7  },
-    { x: 6,  y: 7  },
-    { x: 15, y: 7  },
-    { x: 17, y: 7  },
-    { x: 10, y: 2  },
-    { x: 10, y: 4  },
-    { x: 10, y: 11 },
-    { x: 10, y: 13 },
+    { x: 3,  y: 7  }, { x: 6,  y: 7  },
+    { x: 15, y: 7  }, { x: 17, y: 7  },
+    { x: 10, y: 2  }, { x: 10, y: 4  },
+    { x: 10, y: 11 }, { x: 10, y: 13 },
   ],
-
   enemies: [
-    { x: 3*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8,  vy: 0,    },
-    { x: 16*CELL+CELL/2, y: 7*CELL+CELL/2,  vx: -4.8, vy: 0,    },
-    { x: 10*CELL+CELL/2, y: 2*CELL+CELL/2,  vx: 0,    vy: 4.8,  },
-    { x: 10*CELL+CELL/2, y: 12*CELL+CELL/2, vx: 0,    vy: -4.8, },
+    { x: 3*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8,  vy: 0    },
+    { x: 16*CELL+CELL/2, y: 7*CELL+CELL/2,  vx: -4.8, vy: 0    },
+    { x: 10*CELL+CELL/2, y: 2*CELL+CELL/2,  vx: 0,    vy: 4.8  },
+    { x: 10*CELL+CELL/2, y: 12*CELL+CELL/2, vx: 0,    vy: -4.8 },
     { x: 9*CELL+CELL/2,  y: 6*CELL+CELL/2,  vx: 3.4,  vy: 3.4,  bounce: true },
     { x: 12*CELL+CELL/2, y: 9*CELL+CELL/2,  vx: -3.4, vy: -3.4, bounce: true },
   ]
@@ -81,29 +64,7 @@ const OUTRO_SCENES = [
 
 function showEndingCutscene() {
   running = false;
-
-  if (speedrunMode && speedrunActive) {
-    if (levelTimes.length < 4) levelTimes.push(Date.now() - levelSplitStart);
-    speedrunActive = false;
-  }
-
   showCutscene(OUTRO_SCENES, () => {
-    if (speedrunMode) {
-      showSpeedrunResults();
-    } else {
-      showOverlay(
-        'V.O.I.D.EXE',
-        'Still running.\nAlways watching.\n\nPlay again?',
-        'green',
-        'REBOOT SYSTEM',
-        () => {
-          level = 0; deaths = 0; totalCoins = 0;
-          speedrunMode = false;
-          initLevel(0);
-          running = true;
-          loop();
-        }
-      );
-    }
+    showEndScreen();
   });
 }

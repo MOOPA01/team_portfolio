@@ -117,7 +117,6 @@ canvas { display: block; }
 #speedrun-btn { font-size: 0.82rem; padding: 9px 30px; }
 
 #controls-hint  { font-size: 0.68rem; color: #444; letter-spacing: 0.1em; text-align: center; margin-top: 4px; }
-.speedrun-hint  { font-size: 0.65rem; color: #444; letter-spacing: 0.08em; text-align: center; }
 
 /* ── SCANLINE ── */
 .scanline { display: none; }
@@ -172,56 +171,53 @@ canvas { display: block; }
 }
 #cs-btn:hover { background: #222; color: #eee; }
 
-/* ── SPEEDRUN RESULTS ── */
-#speedrun-results {
+/* ── END SCREEN ── */
+#end-screen {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0,0,0,0.97);
 }
-#speedrun-results.hidden { display: none; }
+#end-screen.hidden { display: none; }
 
-#sr-panel {
-  width: min(440px, 92vw); padding: 38px 44px;
+#end-panel {
+  width: min(400px, 88vw); padding: 44px 48px;
   border: 1px solid #333; background: #161616;
-  display: flex; flex-direction: column; gap: 26px;
+  display: flex; flex-direction: column; align-items: center; gap: 32px;
 }
 
-#sr-header {
+#end-title {
   font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900;
-  letter-spacing: 0.3em; color: #555; text-transform: uppercase;
-  border-bottom: 1px solid #2a2a2a; padding-bottom: 12px;
+  letter-spacing: 0.35em; color: #555; text-transform: uppercase;
+  border-bottom: 1px solid #2a2a2a; padding-bottom: 14px; width: 100%;
+  text-align: center;
 }
 
-/* 2x2 stats grid */
-#sr-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #2a2a2a;
+#end-stats {
+  display: flex; flex-direction: column; gap: 20px; width: 100%;
 }
 
-.sr-stat {
-  padding: 14px 18px;
-  border-right: 1px solid #2a2a2a;
-  border-bottom: 1px solid #2a2a2a;
-}
-.sr-stat:nth-child(2n)      { border-right: none; }
-.sr-stat:nth-last-child(-n+2) { border-bottom: none; }
-
-.sr-stat-label {
-  font-family: 'Orbitron', monospace; font-size: 0.5rem;
-  letter-spacing: 0.2em; color: #555; text-transform: uppercase; margin-bottom: 6px;
+.end-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 
-.sr-stat-value {
-  font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 700; color: #ddd;
+.end-stat-label {
+  font-family: 'Orbitron', monospace; font-size: 0.52rem;
+  letter-spacing: 0.25em; color: #555; text-transform: uppercase;
 }
 
-#sr-actions { display: flex; gap: 14px; justify-content: flex-end; }
-
-#sr-play-again, #sr-play-speedrun {
-  padding: 9px 22px; font-family: 'Orbitron', monospace; font-size: 0.72rem;
-  font-weight: 700; letter-spacing: 0.15em; background: transparent;
-  border: 1px solid #444; color: #aaa;
-  cursor: pointer; transition: background 0.15s, color 0.15s;
+.end-stat-value {
+  font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 900;
+  color: #ddd; letter-spacing: 0.05em; line-height: 1;
 }
-#sr-play-again:hover, #sr-play-speedrun:hover { background: #222; color: #eee; }
+
+.end-stat-divider {
+  width: 100%; height: 1px; background: #2a2a2a;
+}
+
+#end-play-again {
+  padding: 11px 34px; font-family: 'Orbitron', monospace; font-size: 0.78rem;
+  font-weight: 700; letter-spacing: 0.2em; background: transparent;
+  border: 1px solid #555; color: #ccc;
+  cursor: pointer; transition: background 0.15s, color 0.15s; text-transform: uppercase;
+}
+#end-play-again:hover { background: #222; color: #eee; }

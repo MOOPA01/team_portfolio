@@ -1,6 +1,6 @@
 ---
-layout: post
-permalink: /void/
+layout: null
+permalink: /game/
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -16,11 +16,10 @@ permalink: /void/
       void-game.md
       assets/css/void-game.css
       assets/js/void-core.js
-      assets/js/void-level-1.js  (includes startGame + startSpeedrun)
+      assets/js/void-level-1.js  (includes startGame)
       assets/js/void-level-2.js
       assets/js/void-level-3.js
-      assets/js/void-level-4.js
-      assets/js/void-level-5.js  (includes showEndingCutscene)
+      assets/js/void-level-4.js  (includes showEndingCutscene)
   -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +30,7 @@ permalink: /void/
 
   <div class="scanline"></div>
 
-  <!-- Fullscreen toggle button -->
+  <!-- Fullscreen toggle -->
   <button id="fullscreen-btn" title="Toggle fullscreen" onclick="toggleFullscreen()">
     <svg id="fs-icon-expand" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
       <polyline points="1,6 1,1 6,1"/><polyline points="14,1 19,1 19,6"/>
@@ -57,32 +56,22 @@ permalink: /void/
     </div>
   </div>
 
-  <!-- Speedrun results screen -->
-  <div id="speedrun-results" class="hidden">
-    <div id="sr-panel">
-      <div id="sr-header">// RUN COMPLETE</div>
-      <div id="sr-stats">
-        <div class="sr-stat">
-          <div class="sr-stat-label">Time</div>
-          <div class="sr-stat-value" id="sr-run-time">—</div>
+  <!-- End screen -->
+  <div id="end-screen" class="hidden">
+    <div id="end-panel">
+      <div id="end-title">// RUN COMPLETE</div>
+      <div id="end-stats">
+        <div class="end-stat">
+          <div class="end-stat-label">Time</div>
+          <div class="end-stat-value" id="end-time">—</div>
         </div>
-        <div class="sr-stat">
-          <div class="sr-stat-label">Best Time</div>
-          <div class="sr-stat-value" id="sr-best-time">—</div>
-        </div>
-        <div class="sr-stat">
-          <div class="sr-stat-label">Deaths</div>
-          <div class="sr-stat-value" id="sr-run-deaths">—</div>
-        </div>
-        <div class="sr-stat">
-          <div class="sr-stat-label">Least Deaths</div>
-          <div class="sr-stat-value" id="sr-best-deaths">—</div>
+        <div class="end-stat-divider"></div>
+        <div class="end-stat">
+          <div class="end-stat-label">Deaths</div>
+          <div class="end-stat-value" id="end-deaths">—</div>
         </div>
       </div>
-      <div id="sr-actions">
-        <button id="sr-play-again">NORMAL MODE</button>
-        <button id="sr-play-speedrun">&#9201; RETRY RUN</button>
-      </div>
+      <button id="end-play-again">Play Again</button>
     </div>
   </div>
 
@@ -104,17 +93,13 @@ permalink: /void/
           Reach the green zone.<br>
           Don't touch the red.
         </div>
-        <!-- startGame() defined in void-level-1.js -->
         <button id="start-btn" class="void-btn" onclick="startGame()">INITIALIZE</button>
-        <!-- startSpeedrun() defined in void-level-1.js -->
-        <button id="speedrun-btn" class="void-btn" onclick="startSpeedrun()">⏱ SPEEDRUN</button>
         <div id="controls-hint">WASD / ARROW KEYS — MOVE &nbsp;|&nbsp; R — RESTART</div>
-        <div class="speedrun-hint">SPEEDRUN skips cutscenes and times your run</div>
       </div>
     </div>
   </div>
 
-  <!-- Script load order: core first, then levels 1–5 in order -->
+  <!-- Script load order: core first, then levels 1–4 -->
   <script src="{{ '/assets/js/void-core.js'    | relative_url }}"></script>
   <script src="{{ '/assets/js/void-level-1.js' | relative_url }}"></script>
   <script src="{{ '/assets/js/void-level-2.js' | relative_url }}"></script>
@@ -122,7 +107,6 @@ permalink: /void/
   <script src="{{ '/assets/js/void-level-4.js' | relative_url }}"></script>
 
   <script>
-  // ── FULLSCREEN ───────────────────────────────────────────────
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -139,13 +123,6 @@ permalink: /void/
     document.getElementById('fs-icon-expand').style.display   = inFs ? 'none' : '';
     document.getElementById('fs-icon-compress').style.display = inFs ? '' : 'none';
   });
-
-  // ── SCROLL WITHOUT ARROW KEYS ────────────────────────────────
-  // Arrow keys are captured by the game. Allow scrolling only via
-  // mouse wheel / trackpad (which don't fire keydown events).
-  // We do NOT call e.preventDefault() on wheel — browser handles it natively.
-  // The only thing we suppress is keyboard-initiated scrolling (Space/Arrows),
-  // which is already done in void-core.js keydown handler.
   </script>
 
 </body>
