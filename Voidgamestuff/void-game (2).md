@@ -1,8 +1,8 @@
 ---
-layout: null
+layout: post
 permalink: /void/
 ---
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
