@@ -123,7 +123,6 @@ canvas { display: block; }
 #speedrun-btn { font-size: 0.82rem; padding: 9px 30px; }
 
 #controls-hint  { font-size: 0.68rem; color: #444; letter-spacing: 0.1em; text-align: center; margin-top: 4px; }
-.speedrun-hint  { font-size: 0.65rem; color: #444; letter-spacing: 0.08em; text-align: center; }
 
 /* ── SCANLINE ── */
 .scanline { display: none; }
@@ -178,59 +177,56 @@ canvas { display: block; }
 }
 #cs-btn:hover { background: #222; color: #eee; }
 
-/* ── SPEEDRUN RESULTS ── */
-#speedrun-results {
+/* ── END SCREEN ── */
+#end-screen {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0,0,0,0.97);
 }
-#speedrun-results.hidden { display: none; }
+#end-screen.hidden { display: none; }
 
-#sr-panel {
-  width: min(440px, 92vw); padding: 38px 44px;
+#end-panel {
+  width: min(400px, 88vw); padding: 44px 48px;
   border: 1px solid #333; background: #161616;
-  display: flex; flex-direction: column; gap: 26px;
+  display: flex; flex-direction: column; align-items: center; gap: 32px;
 }
 
-#sr-header {
+#end-title {
   font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900;
-  letter-spacing: 0.3em; color: #555; text-transform: uppercase;
-  border-bottom: 1px solid #2a2a2a; padding-bottom: 12px;
+  letter-spacing: 0.35em; color: #555; text-transform: uppercase;
+  border-bottom: 1px solid #2a2a2a; padding-bottom: 14px; width: 100%;
+  text-align: center;
 }
 
-/* 2x2 stats grid */
-#sr-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #2a2a2a;
+#end-stats {
+  display: flex; flex-direction: column; gap: 20px; width: 100%;
 }
 
-.sr-stat {
-  padding: 14px 18px;
-  border-right: 1px solid #2a2a2a;
-  border-bottom: 1px solid #2a2a2a;
-}
-.sr-stat:nth-child(2n)      { border-right: none; }
-.sr-stat:nth-last-child(-n+2) { border-bottom: none; }
-
-.sr-stat-label {
-  font-family: 'Orbitron', monospace; font-size: 0.5rem;
-  letter-spacing: 0.2em; color: #555; text-transform: uppercase; margin-bottom: 6px;
+.end-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 
-.sr-stat-value {
-  font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 700; color: #ddd;
+.end-stat-label {
+  font-family: 'Orbitron', monospace; font-size: 0.52rem;
+  letter-spacing: 0.25em; color: #555; text-transform: uppercase;
 }
 
-#sr-actions { display: flex; gap: 14px; justify-content: flex-end; }
-
-#sr-play-again, #sr-play-speedrun {
-  padding: 9px 22px; font-family: 'Orbitron', monospace; font-size: 0.72rem;
-  font-weight: 700; letter-spacing: 0.15em; background: transparent;
-  border: 1px solid #444; color: #aaa;
-  cursor: pointer; transition: background 0.15s, color 0.15s;
+.end-stat-value {
+  font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 900;
+  color: #ddd; letter-spacing: 0.05em; line-height: 1;
 }
-#sr-play-again:hover, #sr-play-speedrun:hover { background: #222; color: #eee; }
+
+.end-stat-divider {
+  width: 100%; height: 1px; background: #2a2a2a;
+}
+
+#end-play-again {
+  padding: 11px 34px; font-family: 'Orbitron', monospace; font-size: 0.78rem;
+  font-weight: 700; letter-spacing: 0.2em; background: transparent;
+  border: 1px solid #555; color: #ccc;
+  cursor: pointer; transition: background 0.15s, color 0.15s; text-transform: uppercase;
+}
+#end-play-again:hover { background: #222; color: #eee; }
 
 </style>
 </head>
@@ -240,6 +236,8 @@ canvas { display: block; }
   <svg id="fs-icon-expand" viewBox="0 0 20 20"><polyline points="1,6 1,1 6,1"/><polyline points="14,1 19,1 19,6"/><polyline points="1,14 1,19 6,19"/><polyline points="14,19 19,19 19,14"/></svg>
   <svg id="fs-icon-compress" viewBox="0 0 20 20" style="display:none"><polyline points="6,1 6,6 1,6"/><polyline points="14,6 19,6 14,1"/><polyline points="1,14 6,14 6,19"/><polyline points="19,14 14,14 14,19"/></svg>
 </button>
+
+<!-- Cutscene overlay -->
 <div id="cutscene" class="hidden">
   <div id="cs-bg"></div>
   <div id="cs-content">
@@ -249,21 +247,27 @@ canvas { display: block; }
     <button id="cs-btn">[ CONTINUE ]</button>
   </div>
 </div>
-<div id="speedrun-results" class="hidden">
-  <div id="sr-panel">
-    <div id="sr-header">// RUN COMPLETE</div>
-    <div id="sr-stats">
-      <div class="sr-stat"><div class="sr-stat-label">Time</div><div class="sr-stat-value" id="sr-run-time">—</div></div>
-      <div class="sr-stat"><div class="sr-stat-label">Best Time</div><div class="sr-stat-value" id="sr-best-time">—</div></div>
-      <div class="sr-stat"><div class="sr-stat-label">Deaths</div><div class="sr-stat-value" id="sr-run-deaths">—</div></div>
-      <div class="sr-stat"><div class="sr-stat-label">Least Deaths</div><div class="sr-stat-value" id="sr-best-deaths">—</div></div>
+
+<!-- End screen -->
+<div id="end-screen" class="hidden">
+  <div id="end-panel">
+    <div id="end-title">// RUN COMPLETE</div>
+    <div id="end-stats">
+      <div class="end-stat">
+        <div class="end-stat-label">Time</div>
+        <div class="end-stat-value" id="end-time">—</div>
+      </div>
+      <div class="end-stat-divider"></div>
+      <div class="end-stat">
+        <div class="end-stat-label">Deaths</div>
+        <div class="end-stat-value" id="end-deaths">—</div>
+      </div>
     </div>
-    <div id="sr-actions">
-      <button id="sr-play-again">NORMAL MODE</button>
-      <button id="sr-play-speedrun">&#9201; RETRY RUN</button>
-    </div>
+    <button id="end-play-again">Play Again</button>
   </div>
 </div>
+
+<!-- Main game -->
 <div id="wrapper">
   <div id="title">V.O.I.D.EXE</div>
   <div id="hud">
@@ -277,38 +281,15 @@ canvas { display: block; }
       <div id="overlay-title" class="cyan">V.O.I.D.EXE</div>
       <div id="overlay-sub">Navigate the grid.<br>Collect all coins.<br>Reach the green zone.<br>Don't touch the red.</div>
       <button id="start-btn" class="void-btn" onclick="startGame()">INITIALIZE</button>
-      <button id="speedrun-btn" class="void-btn" onclick="startSpeedrun()">&#9201; SPEEDRUN</button>
       <div id="controls-hint">WASD / ARROW KEYS — MOVE &nbsp;|&nbsp; R — RESTART</div>
-      <div class="speedrun-hint">SPEEDRUN skips cutscenes and times your run</div>
     </div>
   </div>
 </div>
+
 <script>
 // =============================================================
 //  V.O.I.D.EXE  —  void-core.js
-//  Place at: assets/js/void-core.js
-//
-//  Contains:
-//    · Grid constants & canvas setup
-//    · Wall builder helpers
-//    · Game state variables
-//    · Speedrun mode state & timer
-//    · Music engine (Web Audio API — 5 unique synthesized tracks)
-//    · initLevel / updateHUD
-//    · Particle system
-//    · Player movement
-//    · Enemy movement
-//    · Collision detection
-//    · All drawing
-//    · Game loop
-//    · Cutscene engine
-//    · Overlay system
-//    · Speedrun results screen
-//    · Keyboard input
-//
-//  Load order: void-core.js → void-level-1..5.js
 // =============================================================
-
 
 // ─── GRID CONSTANTS ──────────────────────────────────────────
 const CELL = 32;
@@ -330,8 +311,7 @@ const LEVELS = [];
 let level      = 0;
 let deaths     = 0;
 let totalCoins = 0;
-let player, enemies, coins, wallSet, goalRect;
-let keys       = {};
+let player, enemies, coins, wallSet, wallBarriers, goalRect;
 let dead       = false;
 let levelWon   = false;
 let deathTimer = 0;
@@ -340,16 +320,12 @@ let running    = false;
 let particles  = [];
 let t          = 0;
 
-// ─── SPEEDRUN STATE ──────────────────────────────────────────
-let speedrunMode    = false;
-let speedrunActive  = false;
-let runStartTime    = 0;     // absolute start of the entire run (never resets on death)
-let levelSplitStart = 0;     // wall-clock time when current level's split began
-let levelTimes      = [];    // completed split times in ms per level
-let speedrunDeaths  = 0;     // total deaths across entire run
+// ─── TIMER STATE ─────────────────────────────────────────────
+let runStartTime = 0;   // set when the first level begins, never reset on death
+let timerActive  = false;
 
 
-// ─── WALL UTILITIES ──────────────────────────────────────────
+// ─── WALL / BARRIER UTILITIES ────────────────────────────────
 
 function buildBorderWalls(cols, rows) {
   const w = [];
@@ -380,47 +356,241 @@ function isWall(px, py) {
   return wallSet.has(`${Math.floor(px / CELL)},${Math.floor(py / CELL)}`);
 }
 
+// Barrier-style wall objects: each cell gets color, stroke, visible, hitbox
+function buildBarriers(walls) {
+  return walls.map(w => ({
+    x:       w.x * CELL,
+    y:       w.y * CELL,
+    width:   CELL,
+    height:  CELL,
+    color:   'rgba(34, 34, 34, 1)',
+    stroke:  'rgba(68, 68, 68, 0.8)',
+    visible: true,
+    hitbox:  { widthPercentage: 1.0, heightPercentage: 1.0 }
+  }));
+}
+
+
+// ─── COIN CLASS ──────────────────────────────────────────────
+
+class Coin {
+  constructor(data) {
+    this.x                    = data.x;
+    this.y                    = data.y;
+    this.r                    = data.r || 6;
+    this.value                = Number(data.value ?? 1);
+    this.collected            = false;
+    this.collectCount         = 0;
+    this.collectCooldownUntil = 0;
+    this.color                = data.color  || '#FFD700';
+    this.strokeColor          = data.stroke || '#B8860B';
+    this.pulse                = data.pulse  || (Math.random() * Math.PI * 2);
+  }
+
+  draw() {
+    if (this.collected) return;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.strokeStyle = this.strokeColor;
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  }
+
+  collect() {
+    if (performance.now() < this.collectCooldownUntil) return false;
+    this.collected            = true;
+    this.collectCount        += 1;
+    this.collectCooldownUntil = performance.now() + 200;
+    totalCoins++;
+    spawnParticles(this.x, this.y, this.color, 12);
+    updateHUD();
+    return true;
+  }
+
+  checkPlayerCollision(px, py, pr) {
+    if (this.collected) return false;
+    if (performance.now() < this.collectCooldownUntil) return false;
+    const dx = px - this.x, dy = py - this.y;
+    return Math.sqrt(dx * dx + dy * dy) < pr + this.r + 2;
+  }
+}
+
+
+// ─── PLAYER CONTROLLER ───────────────────────────────────────
+
+class PlayerController {
+  constructor(data) {
+    this.keypress = data.keypress || {
+      up:       'ArrowUp',  left:     'ArrowLeft',
+      down:     'ArrowDown', right:   'ArrowRight',
+      upAlt:    'w', leftAlt:  'a', downAlt:  's', rightAlt: 'd',
+      upAlt2:   'W', leftAlt2: 'A', downAlt2: 'S', rightAlt2:'D',
+    };
+    this.x           = data.x;
+    this.y           = data.y;
+    this.r           = data.r    || 10;
+    this.xVelocity   = data.speed || 3.2;
+    this.yVelocity   = data.speed || 3.2;
+    this.velocity    = { x: 0, y: 0 };
+    this.pressedKeys = {};
+    this.moved       = false;
+    this.direction   = 'down';
+    this.gravity     = data.gravity || false;
+    this.acceleration = 0.001;
+    this.time        = 0;
+
+    this._boundKeyDown = this.handleKeyDown.bind(this);
+    this._boundKeyUp   = this.handleKeyUp.bind(this);
+    window.addEventListener('keydown', this._boundKeyDown);
+    window.addEventListener('keyup',   this._boundKeyUp);
+  }
+
+  handleKeyDown(e) {
+    this.pressedKeys[e.key] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))
+      e.preventDefault();
+    this.updateVelocity();
+    this.updateDirection();
+  }
+
+  handleKeyUp(e) {
+    if (e.key in this.pressedKeys) delete this.pressedKeys[e.key];
+    this.updateVelocity();
+    this.updateDirection();
+  }
+
+  updateVelocity() {
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    this.moved = false;
+
+    const k = this.keypress, p = this.pressedKeys;
+    const goRight = p[k.right]  || p[k.rightAlt] || p[k.rightAlt2];
+    const goLeft  = p[k.left]   || p[k.leftAlt]  || p[k.leftAlt2];
+    const goUp    = p[k.up]     || p[k.upAlt]    || p[k.upAlt2];
+    const goDown  = p[k.down]   || p[k.downAlt]  || p[k.downAlt2];
+
+    if (goRight || goLeft) {
+      this.moved = true;
+      this.velocity.x = goRight ? this.xVelocity : -this.xVelocity;
+    }
+    if (goUp || goDown) {
+      this.moved = true;
+      this.velocity.y = goDown ? this.yVelocity : -this.yVelocity;
+    }
+    if (this.velocity.x !== 0 && this.velocity.y !== 0) {
+      this.velocity.x *= 0.707;
+      this.velocity.y *= 0.707;
+    }
+    if (!this.moved && this.gravity) {
+      this.time += 1;
+      this.velocity.y += 0.5 + this.acceleration * this.time;
+    } else if (this.moved) {
+      this.time = 0;
+    }
+  }
+
+  updateDirection() {
+    const k = this.keypress, p = this.pressedKeys;
+    const goRight = p[k.right] || p[k.rightAlt] || p[k.rightAlt2];
+    const goLeft  = p[k.left]  || p[k.leftAlt]  || p[k.leftAlt2];
+    const goUp    = p[k.up]    || p[k.upAlt]    || p[k.upAlt2];
+    const goDown  = p[k.down]  || p[k.downAlt]  || p[k.downAlt2];
+    if      (goLeft  && goUp)   this.direction = 'upLeft';
+    else if (goLeft  && goDown) this.direction = 'downLeft';
+    else if (goRight && goUp)   this.direction = 'upRight';
+    else if (goRight && goDown) this.direction = 'downRight';
+    else if (goUp)              this.direction = 'up';
+    else if (goDown)            this.direction = 'down';
+    else if (goRight)           this.direction = 'right';
+    else if (goLeft)            this.direction = 'left';
+  }
+
+  move() {
+    if (dead || levelWon) return;
+    const r  = this.r - 1;
+    const dx = this.velocity.x;
+    const dy = this.velocity.y;
+
+    const nx = this.x + dx;
+    if (!isWall(nx - r, this.y)     && !isWall(nx + r, this.y) &&
+        !isWall(nx - r, this.y - r) && !isWall(nx + r, this.y - r) &&
+        !isWall(nx - r, this.y + r) && !isWall(nx + r, this.y + r)) {
+      this.x = nx;
+    } else {
+      this.velocity.x = 0;
+    }
+    const ny = this.y + dy;
+    if (!isWall(this.x,     ny - r) && !isWall(this.x,     ny + r) &&
+        !isWall(this.x - r, ny - r) && !isWall(this.x + r, ny - r) &&
+        !isWall(this.x - r, ny)     && !isWall(this.x + r, ny)) {
+      this.y = ny;
+    } else {
+      this.velocity.y = 0;
+    }
+  }
+
+  draw() {
+    if (dead) return;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#00fff9';
+    ctx.fill();
+  }
+
+  destroy() {
+    window.removeEventListener('keydown', this._boundKeyDown);
+    window.removeEventListener('keyup',   this._boundKeyUp);
+  }
+}
+
 
 // ─── LEVEL INIT ──────────────────────────────────────────────
 
 function initLevel(idx) {
   const L = LEVELS[idx];
-  wallSet  = buildWallSet(L.walls);
+  wallSet      = buildWallSet(L.walls);
+  wallBarriers = buildBarriers(L.walls);
 
-  player = {
-    x:     L.start.x * CELL + CELL / 2,
-    y:     L.start.y * CELL + CELL / 2,
-    r:     10,
-    trail: []
-  };
+  if (player && player.destroy) player.destroy();
+
+  player = new PlayerController({
+    x: L.start.x * CELL + CELL / 2,
+    y: L.start.y * CELL + CELL / 2,
+    r: 10, speed: 3.2,
+    keypress: {
+      up: 'ArrowUp', left: 'ArrowLeft', down: 'ArrowDown', right: 'ArrowRight',
+      upAlt: 'w', leftAlt: 'a', downAlt: 's', rightAlt: 'd',
+      upAlt2: 'W', leftAlt2: 'A', downAlt2: 'S', rightAlt2: 'D',
+    }
+  });
 
   goalRect = {
     x: L.goal.x * CELL, y: L.goal.y * CELL,
     w: L.goal.w * CELL, h: L.goal.h * CELL
   };
 
-  coins = L.coins.map(c => ({
+  coins = L.coins.map(c => new Coin({
     x: c.x * CELL + CELL / 2, y: c.y * CELL + CELL / 2,
-    r: 6, collected: false, pulse: Math.random() * Math.PI * 2
+    r: 6, value: 1, color: '#FFD700', stroke: '#B8860B',
+    pulse: Math.random() * Math.PI * 2
   }));
 
   enemies   = L.enemies.map(e => ({...e, r: 10}));
   dead      = false; levelWon = false; deathTimer = 0; winFlash = 0;
   particles = [];
 
+  // Start timer once, on level 0 entry — never reset on death or level change
+  if (idx === 0 && !timerActive) {
+    runStartTime = Date.now();
+    timerActive  = true;
+  }
+
   document.getElementById('h-level').textContent = idx + 1;
   document.getElementById('h-total').textContent = coins.length;
   updateHUD();
-
-  // Speedrun: timer keeps running through deaths. Only record a new split
-  // start when entering a level for the first time this run (not on retries).
-  if (speedrunMode) {
-    speedrunActive = true;
-    if (levelTimes.length === idx) {
-      levelSplitStart = Date.now();
-      if (idx === 0) runStartTime = levelSplitStart;
-    }
-  }
 }
 
 function updateHUD() {
@@ -429,7 +599,7 @@ function updateHUD() {
 }
 
 
-// ─── SPEEDRUN HELPERS ────────────────────────────────────────
+// ─── TIMER ───────────────────────────────────────────────────
 
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
@@ -439,69 +609,58 @@ function formatTime(ms) {
   return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(centis).padStart(2,'0')}`;
 }
 
-function calcTier(totalMs, totalDeaths) {
-  const s = totalMs / 1000;
-  if (s < 90  && totalDeaths === 0) return 'S+';
-  if (s < 120 && totalDeaths <= 2)  return 'S';
-  if (s < 180 && totalDeaths <= 5)  return 'A';
-  if (s < 240 && totalDeaths <= 10) return 'B';
-  if (s < 360 && totalDeaths <= 20) return 'C';
-  if (s < 600 || totalDeaths <= 40) return 'D';
-  return 'F';
+function drawTimer() {
+  if (!timerActive) return;
+  const elapsed = Date.now() - runStartTime;
+  const str     = formatTime(elapsed);
+
+  // Pill background — top-right corner, sits just inside canvas edge
+  const pad  = 8;
+  const fw   = 9;   // approx char width for Orbitron 13px
+  const tw   = str.length * fw;
+  const bx   = W - tw - pad * 2 - 10;
+  const by   = 8;
+  const bw   = tw + pad * 2;
+  const bh   = 22;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 4);
+  ctx.fill();
+
+  // Subtle border
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth   = 1;
+  ctx.stroke();
+
+  // Timer text
+  ctx.font      = '13px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(220,220,220,0.75)';
+  ctx.textAlign = 'right';
+  ctx.fillText(str, W - 10 - pad + pad, by + bh - 6);
+  ctx.textAlign = 'left';
 }
 
-// ─── PERSONAL BEST STORAGE ──────────────────────────────────
-// Schema: { bestTime, leastDeaths }
 
-function loadPB() {
-  try {
-    const raw = localStorage.getItem('void_pb');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return { bestTime: null, leastDeaths: null };
-}
+// ─── END SCREEN ──────────────────────────────────────────────
 
-function savePB(pb) {
-  try { localStorage.setItem('void_pb', JSON.stringify(pb)); } catch(e) {}
-}
+function showEndScreen() {
+  timerActive = false;
+  const totalMs = Date.now() - runStartTime;
 
-function updatePB(totalMs, _tier, deaths, _lvlTimes) {
-  const pb = loadPB();
-  if (pb.bestTime    === null || totalMs < pb.bestTime)    pb.bestTime    = totalMs;
-  if (pb.leastDeaths === null || deaths  < pb.leastDeaths) pb.leastDeaths = deaths;
-  savePB(pb);
-  return pb;
-}
-
-// ─── SPEEDRUN RESULTS ────────────────────────────────────────
-
-function showSpeedrunResults() {
-  const totalMs = levelTimes.reduce((a, b) => a + b, 0);
-  const pb      = updatePB(totalMs, calcTier(totalMs, speedrunDeaths), speedrunDeaths, levelTimes);
-
-  // Populate the 4 stats
-  document.getElementById('sr-run-time').textContent   = formatTime(totalMs);
-  document.getElementById('sr-best-time').textContent  = pb.bestTime   !== null ? formatTime(pb.bestTime)  : '—';
-  document.getElementById('sr-run-deaths').textContent = String(speedrunDeaths);
-  document.getElementById('sr-best-deaths').textContent= pb.leastDeaths !== null ? String(pb.leastDeaths) : '—';
-
+  document.getElementById('end-time').textContent   = formatTime(totalMs);
+  document.getElementById('end-deaths').textContent = String(deaths);
   document.getElementById('canvas-wrap').style.display = 'none';
-  document.getElementById('speedrun-results').classList.remove('hidden');
+  document.getElementById('end-screen').classList.remove('hidden');
 
-  document.getElementById('sr-play-again').onclick = () => {
-    document.getElementById('speedrun-results').classList.add('hidden');
+  document.getElementById('end-play-again').onclick = () => {
+    document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('canvas-wrap').style.display = '';
     level = 0; deaths = 0; totalCoins = 0;
-    speedrunMode = false; speedrunDeaths = 0; levelTimes = [];
-    initLevel(0); running = true; loop();
-  };
-
-  document.getElementById('sr-play-speedrun').onclick = () => {
-    document.getElementById('speedrun-results').classList.add('hidden');
-    document.getElementById('canvas-wrap').style.display = '';
-    level = 0; deaths = 0; totalCoins = 0;
-    speedrunMode = true; speedrunDeaths = 0; levelTimes = [];
-    initLevel(0); running = true; loop();
+    timerActive = false;
+    initLevel(0);
+    running = true;
+    loop();
   };
 }
 
@@ -520,35 +679,6 @@ function spawnParticles(x, y, color, count = 18) {
 }
 
 
-// ─── PLAYER MOVEMENT ─────────────────────────────────────────
-
-function movePlayer() {
-  if (dead || levelWon) return;
-  const speed = 3.2;
-  let dx = 0, dy = 0;
-  if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx -= speed;
-  if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += speed;
-  if (keys['ArrowUp']    || keys['w'] || keys['W']) dy -= speed;
-  if (keys['ArrowDown']  || keys['s'] || keys['S']) dy += speed;
-  if (dx && dy) { dx *= 0.707; dy *= 0.707; }
-
-  const r  = player.r - 1;
-  const nx = player.x + dx;
-  if (!isWall(nx-r, player.y) && !isWall(nx+r, player.y) &&
-      !isWall(nx-r, player.y-r) && !isWall(nx+r, player.y-r) &&
-      !isWall(nx-r, player.y+r) && !isWall(nx+r, player.y+r))
-    player.x = nx;
-
-  const ny = player.y + dy;
-  if (!isWall(player.x, ny-r) && !isWall(player.x, ny+r) &&
-      !isWall(player.x-r, ny-r) && !isWall(player.x+r, ny-r) &&
-      !isWall(player.x-r, ny) && !isWall(player.x+r, ny))
-    player.y = ny;
-
-  // trail removed
-}
-
-
 // ─── ENEMY MOVEMENT ──────────────────────────────────────────
 
 function moveEnemies() {
@@ -559,18 +689,18 @@ function moveEnemies() {
     const r    = e.r;
     if (orig.bounce) {
       e.x += e.vx; e.y += e.vy;
-      if (isWall(e.x-r, e.y) || isWall(e.x+r, e.y)) { e.vx *= -1; e.x += e.vx * 2; }
-      if (isWall(e.x, e.y-r) || isWall(e.x, e.y+r)) { e.vy *= -1; e.y += e.vy * 2; }
+      if (isWall(e.x - r, e.y) || isWall(e.x + r, e.y)) { e.vx *= -1; e.x += e.vx * 2; }
+      if (isWall(e.x, e.y - r) || isWall(e.x, e.y + r)) { e.vy *= -1; e.y += e.vy * 2; }
     } else if (orig.vx !== 0) {
       e.x += e.vx;
-      if (isWall(e.x-r, e.y) || isWall(e.x+r, e.y) ||
-          isWall(e.x-r, e.y-r) || isWall(e.x+r, e.y-r)) {
+      if (isWall(e.x - r, e.y)     || isWall(e.x + r, e.y) ||
+          isWall(e.x - r, e.y - r) || isWall(e.x + r, e.y - r)) {
         e.vx *= -1; e.x += e.vx * 2;
       }
     } else {
       e.y += e.vy;
-      if (isWall(e.x, e.y-r) || isWall(e.x, e.y+r) ||
-          isWall(e.x-r, e.y-r) || isWall(e.x+r, e.y-r)) {
+      if (isWall(e.x, e.y - r)     || isWall(e.x, e.y + r) ||
+          isWall(e.x - r, e.y - r) || isWall(e.x + r, e.y - r)) {
         e.vy *= -1; e.y += e.vy * 2;
       }
     }
@@ -584,16 +714,10 @@ function checkCollisions() {
   if (dead || levelWon) return;
   for (const e of enemies) {
     const dx = player.x - e.x, dy = player.y - e.y;
-    if (Math.sqrt(dx*dx + dy*dy) < player.r + e.r - 2) { die(); return; }
+    if (Math.sqrt(dx * dx + dy * dy) < player.r + e.r - 2) { die(); return; }
   }
   for (const c of coins) {
-    if (c.collected) continue;
-    const dx = player.x - c.x, dy = player.y - c.y;
-    if (Math.sqrt(dx*dx + dy*dy) < player.r + c.r + 2) {
-      c.collected = true; totalCoins++;
-      spawnParticles(c.x, c.y, '#ffee00', 12);
-      updateHUD();
-    }
+    if (c.checkPlayerCollision(player.x, player.y, player.r)) c.collect();
   }
   if (coins.every(c => c.collected) &&
       player.x > goalRect.x && player.x < goalRect.x + goalRect.w &&
@@ -605,52 +729,13 @@ function checkCollisions() {
 function die() {
   if (dead) return;
   dead = true; deaths++; deathTimer = 60;
-  if (speedrunMode) speedrunDeaths++;
   spawnParticles(player.x, player.y, '#ff006e', 24);
   updateHUD();
 }
 
 function winLevel() {
   levelWon = true; winFlash = 60;
-  // Snap split for this level
-  if (speedrunMode && speedrunActive) {
-    levelTimes.push(Date.now() - levelSplitStart);
-    // levelSplitStart will be updated in initLevel when next level loads
-  }
   spawnParticles(player.x, player.y, '#39ff14', 30);
-}
-
-
-// ─── SPEEDRUN HUD OVERLAY ────────────────────────────────────
-
-function drawSpeedrunHUD() {
-  if (!speedrunMode || !speedrunActive) return;
-  // Show total run time (continuous, never resets)
-  const totalElapsed = Date.now() - runStartTime;
-  // Show current level split time
-  const splitElapsed = Date.now() - levelSplitStart;
-
-  ctx.save();
-  ctx.textAlign = 'right';
-
-  // Total run clock — top right
-  ctx.font      = '13px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(255,238,0,0.95)';
-  ctx.fillText('⏱ ' + formatTime(totalElapsed), W - 10, 20);
-
-  // Current level split — dimmer, below total
-  ctx.font      = '10px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,238,0,0.5)';
-  ctx.fillText('L' + (level + 1) + ' ' + formatTime(splitElapsed), W - 10, 36);
-
-  // Completed splits
-  if (levelTimes.length > 0) {
-    levelTimes.forEach((ms, i) => {
-      ctx.fillText(`L${i+1} ${formatTime(ms)}`, W - 10, 50 + i * 13);
-    });
-  }
-  ctx.textAlign = 'left';
-  ctx.restore();
 }
 
 
@@ -660,62 +745,58 @@ function draw(t) {
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, W, H);
 
-  // Goal zone — solid fill, outline, ENTER label when ready
+  // Goal zone
   const allCollected = coins.every(c => c.collected);
-  ctx.fillStyle = allCollected ? 'rgba(57,255,20,0.25)' : 'rgba(57,255,20,0.07)';
+  ctx.fillStyle   = allCollected ? 'rgba(57,255,20,0.25)' : 'rgba(57,255,20,0.07)';
   ctx.fillRect(goalRect.x, goalRect.y, goalRect.w, goalRect.h);
   ctx.strokeStyle = allCollected ? '#39ff14' : 'rgba(57,255,20,0.3)';
   ctx.lineWidth   = 1;
   ctx.strokeRect(goalRect.x + 0.5, goalRect.y + 0.5, goalRect.w - 1, goalRect.h - 1);
   if (allCollected) {
     ctx.fillStyle = '#39ff14';
-    ctx.font = 'bold 11px Share Tech Mono'; ctx.textAlign = 'center';
-    ctx.fillText('ENTER', goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2 + 4);
+    ctx.font      = 'bold 11px Share Tech Mono'; ctx.textAlign = 'center';
+    ctx.fillText('ENTER', goalRect.x + goalRect.w / 2, goalRect.y + goalRect.h / 2 + 4);
     ctx.textAlign = 'left';
   }
 
-  // Walls — flat dark fill, single border
-  LEVELS[level].walls.forEach(w => {
-    const wx = w.x * CELL, wy = w.y * CELL;
-    ctx.fillStyle = '#222';
-    ctx.fillRect(wx, wy, CELL, CELL);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(wx + 0.5, wy + 0.5, CELL - 1, CELL - 1);
+  // Walls (Barrier-style objects)
+  wallBarriers.forEach(b => {
+    if (!b.visible) return;
+    ctx.fillStyle   = b.color;
+    ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.strokeStyle = b.stroke;
+    ctx.lineWidth   = 0.5;
+    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.width - 1, b.height - 1);
   });
 
-  // Coins — flat yellow circles, no pulse, no glow
-  coins.forEach(c => {
-    if (c.collected) return;
-    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
-    ctx.fillStyle = '#ffee00'; ctx.fill();
-  });
+  // Coins
+  coins.forEach(c => c.draw());
 
-  // Player — flat cyan circle, no trail, no glow
-  if (!dead) {
-    ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
-    ctx.fillStyle = '#00fff9'; ctx.fill();
-  }
+  // Player
+  player.draw();
 
-  // Enemies — flat red circles, no pulse, no glow
+  // Enemies
   enemies.forEach(e => {
-    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
-    ctx.fillStyle = '#ff006e'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff006e';
+    ctx.fill();
   });
 
-  // Particles — kept for death/win feedback, no shadows
+  // Particles
   particles = particles.filter(p => p.life > 0);
   particles.forEach(p => {
     p.x += p.vx; p.y += p.vy; p.vx *= 0.92; p.vy *= 0.92; p.life -= 0.025;
-    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI*2);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI * 2);
     ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.fill();
     ctx.globalAlpha = 1;
   });
 
-  // Win flash
+  // Win flash → advance level or end
   if (levelWon && winFlash > 0) {
-    ctx.fillStyle = `rgba(57,255,20,${winFlash/60*0.3})`;
-    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = `rgba(57,255,20,${winFlash / 60 * 0.3})`;
+    ctx.fillRect(0, 0, W, H);
     winFlash--;
     if (winFlash === 0) {
       if (level < LEVELS.length - 1) {
@@ -727,14 +808,14 @@ function draw(t) {
     }
   }
 
-  // Respawn timer (no tint — just wait 1 second then reset)
+  // Respawn timer
   if (dead && deathTimer > 0) {
     deathTimer--;
     if (deathTimer === 0) initLevel(level);
   }
 
-  // Speedrun timer HUD
-  drawSpeedrunHUD();
+  // Timer overlay (drawn last so it sits on top)
+  drawTimer();
 }
 
 
@@ -743,7 +824,8 @@ function draw(t) {
 function loop() {
   if (!running) return;
   t++;
-  movePlayer();
+  player.updateVelocity();
+  player.move();
   moveEnemies();
   checkCollisions();
   draw(t);
@@ -765,11 +847,7 @@ function renderCutsceneSlide() {
   const scene = csQueue[csIndex];
   document.getElementById('cs-label').textContent   = scene.label;
   document.getElementById('cs-counter').textContent = `${csIndex + 1} / ${csQueue.length}`;
-
-  // Show full text immediately — no typewriter
-  const textEl = document.getElementById('cs-text');
-  textEl.innerHTML = scene.text;
-
+  document.getElementById('cs-text').innerHTML      = scene.text;
   const btnEl = document.getElementById('cs-btn');
   btnEl.classList.add('visible');
   btnEl.textContent = (csIndex === csQueue.length - 1) ? '[ INITIALIZE ]' : '[ CONTINUE ]';
@@ -801,7 +879,7 @@ function showOverlay(title, sub, colorClass, btnText, cb) {
   const btn = document.getElementById('start-btn');
   ot.textContent  = title;
   ot.className    = colorClass;
-  os.innerHTML    = sub.replace(/\n/g,'<br>');
+  os.innerHTML    = sub.replace(/\n/g, '<br>');
   btn.textContent = btnText;
   btn.onclick = () => { ov.classList.add('hidden'); cb(); };
   ov.classList.remove('hidden');
@@ -812,47 +890,27 @@ function showOverlay(title, sub, colorClass, btnText, cb) {
 // ─── INPUT ───────────────────────────────────────────────────
 
 window.addEventListener('keydown', e => {
-  keys[e.key] = true;
-  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-
-  // Secret dev skip — not advertised
+  // Z — dev skip
   if ((e.key === 'z' || e.key === 'Z') && running && !dead) {
-    if (speedrunMode && speedrunActive) {
-      levelTimes.push(Date.now() - levelSplitStart);
-    }
     if (level < LEVELS.length - 1) {
       level++; initLevel(level);
     } else {
       showEndingCutscene();
     }
   }
-
-  // R — restart game from level 1 (skips cutscene, keeps mode)
+  // R — restart from level 1
   if ((e.key === 'r' || e.key === 'R') && running) {
     level = 0; deaths = 0; totalCoins = 0;
-    speedrunDeaths = 0; levelTimes = [];
+    timerActive = false;
     initLevel(0);
-    // loop() is already running via rAF, initLevel resets state cleanly
   }
 });
-window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // =============================================================
 //  V.O.I.D.EXE  —  void-level-1.js
-//  Place at: assets/js/void-level-1.js
-//
-//  Contains:
-//    · Level 1 map data (Coin Collect — no enemies)
-//    · INTRO_SCENES cutscene array
-//    · startGame()
-//    · startSpeedrun()
-//
-//  Requires void-core.js to be loaded first.
 // =============================================================
 
 // ── LEVEL 1 — COIN COLLECT ───────────────────────────────────
-// Open grid with scattered walls creating light corridors.
-// No enemies. Player learns movement and coin collection.
 
 LEVELS.push({
   walls: buildBorderWalls(COLS, ROWS).concat([
@@ -866,10 +924,8 @@ LEVELS.push({
     ...rectWall(11, 9, 1, 5),
     ...rectWall(15, 9, 1, 4),
   ]),
-
   start: { x: 1, y: 1 },
   goal:  { x: 19, y: 12, w: 2, h: 3 },
-
   coins: [
     { x: 5,  y: 2  }, { x: 9,  y: 2  }, { x: 13, y: 2  },
     { x: 2,  y: 5  }, { x: 5,  y: 6  }, { x: 9,  y: 5  },
@@ -879,7 +935,6 @@ LEVELS.push({
     { x: 2,  y: 12 }, { x: 5,  y: 13 }, { x: 9,  y: 12 },
     { x: 13, y: 13 }, { x: 17, y: 12 },
   ],
-
   enemies: []
 });
 
@@ -916,23 +971,11 @@ function startGame() {
   document.getElementById('overlay').classList.add('hidden');
   showCutscene(INTRO_SCENES, () => {
     level = 0; deaths = 0; totalCoins = 0;
-    speedrunMode = false; speedrunDeaths = 0; levelTimes = [];
+    timerActive = false;
     initLevel(0);
     running = true;
     loop();
   });
-}
-
-
-// ── startSpeedrun ────────────────────────────────────────────
-
-function startSpeedrun() {
-  document.getElementById('overlay').classList.add('hidden');
-  level = 0; deaths = 0; totalCoins = 0;
-  speedrunMode = true; speedrunDeaths = 0; levelTimes = [];
-  initLevel(0);
-  running = true;
-  loop();
 }
 
 // =============================================================
@@ -1033,47 +1076,30 @@ LEVELS.push({
 
 // =============================================================
 //  V.O.I.D.EXE  —  void-level-4.js
-//  Place at: assets/js/void-level-4.js
-//
-//  Contains:
-//    · Level 4 map data (Cross Corridor) — FINAL LEVEL
-//    · OUTRO_SCENES cutscene array
-//    · showEndingCutscene()
-//
-//  Requires void-core.js to be loaded first.
 // =============================================================
 
 // ── LEVEL 4 — CROSS CORRIDOR ─────────────────────────────────
-// Four corner blocks force player through a cross-shaped corridor.
-// Bouncers at the intersection, sweepers in both arms.
 
 LEVELS.push({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(1,  1, 8, 5),   // top-left block
-    ...rectWall(13, 1, 8, 5),   // top-right block
-    ...rectWall(1,  10, 8, 5),  // bottom-left block
-    ...rectWall(13, 10, 8, 5),  // bottom-right block
+    ...rectWall(1,  1, 8, 5),
+    ...rectWall(13, 1, 8, 5),
+    ...rectWall(1,  10, 8, 5),
+    ...rectWall(13, 10, 8, 5),
   ]),
-
   start: { x: 1, y: 7 },
   goal:  { x: 18, y: 6, w: 2, h: 4 },
-
   coins: [
-    { x: 3,  y: 7  },
-    { x: 6,  y: 7  },
-    { x: 15, y: 7  },
-    { x: 17, y: 7  },
-    { x: 10, y: 2  },
-    { x: 10, y: 4  },
-    { x: 10, y: 11 },
-    { x: 10, y: 13 },
+    { x: 3,  y: 7  }, { x: 6,  y: 7  },
+    { x: 15, y: 7  }, { x: 17, y: 7  },
+    { x: 10, y: 2  }, { x: 10, y: 4  },
+    { x: 10, y: 11 }, { x: 10, y: 13 },
   ],
-
   enemies: [
-    { x: 3*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8,  vy: 0,    },
-    { x: 16*CELL+CELL/2, y: 7*CELL+CELL/2,  vx: -4.8, vy: 0,    },
-    { x: 10*CELL+CELL/2, y: 2*CELL+CELL/2,  vx: 0,    vy: 4.8,  },
-    { x: 10*CELL+CELL/2, y: 12*CELL+CELL/2, vx: 0,    vy: -4.8, },
+    { x: 3*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 4.8,  vy: 0    },
+    { x: 16*CELL+CELL/2, y: 7*CELL+CELL/2,  vx: -4.8, vy: 0    },
+    { x: 10*CELL+CELL/2, y: 2*CELL+CELL/2,  vx: 0,    vy: 4.8  },
+    { x: 10*CELL+CELL/2, y: 12*CELL+CELL/2, vx: 0,    vy: -4.8 },
     { x: 9*CELL+CELL/2,  y: 6*CELL+CELL/2,  vx: 3.4,  vy: 3.4,  bounce: true },
     { x: 12*CELL+CELL/2, y: 9*CELL+CELL/2,  vx: -3.4, vy: -3.4, bounce: true },
   ]
@@ -1114,30 +1140,8 @@ const OUTRO_SCENES = [
 
 function showEndingCutscene() {
   running = false;
-
-  if (speedrunMode && speedrunActive) {
-    if (levelTimes.length < 4) levelTimes.push(Date.now() - levelSplitStart);
-    speedrunActive = false;
-  }
-
   showCutscene(OUTRO_SCENES, () => {
-    if (speedrunMode) {
-      showSpeedrunResults();
-    } else {
-      showOverlay(
-        'V.O.I.D.EXE',
-        'Still running.\nAlways watching.\n\nPlay again?',
-        'green',
-        'REBOOT SYSTEM',
-        () => {
-          level = 0; deaths = 0; totalCoins = 0;
-          speedrunMode = false;
-          initLevel(0);
-          running = true;
-          loop();
-        }
-      );
-    }
+    showEndScreen();
   });
 }
 
