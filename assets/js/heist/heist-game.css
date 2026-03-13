@@ -1,6 +1,5 @@
 /* =============================================================
    H.E.I.S.T.EXE  —  heist-game.css
-   Ghost Protocol: Infiltration Engine
    ============================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
@@ -19,28 +18,30 @@
   --purple:  #aa00ff;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  background: var(--bg) !important;
-  color: var(--text) !important;
-  font-family: 'Share Tech Mono', monospace !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  min-height: 100vh !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  padding: 20px 0 40px !important;
-  user-select: none !important;
+/* ── NUKE the layout behind us ── */
+/* Cover everything with our game shell */
+#heist-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 0 40px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+  user-select: none;
 }
 
 /* ── FULLSCREEN BUTTON ── */
 #fullscreen-btn {
   position: fixed;
   top: 10px; right: 10px;
-  z-index: 500;
+  z-index: 9500;
   background: #0f1525;
   border: 1px solid #1e2d4a;
   color: #445577;
@@ -58,13 +59,9 @@ body {
   stroke-linecap: round;
 }
 
-body > header, body > footer, body > nav,
-.site-header, .site-footer,
-.page-content > *:not(#heist-game-root) { display: none !important; }
-
 /* ── WRAPPER ── */
 #wrapper {
-  position: relative; z-index: 1;
+  position: relative;
   display: flex; flex-direction: column;
   align-items: center; gap: 14px;
 }
@@ -104,8 +101,10 @@ canvas { display: block; width: 704px; height: 512px; }
 
 /* ── GAME OVERLAY (start screen) ── */
 #overlay {
-  position: fixed; inset: 0; z-index: 100;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: fixed; inset: 0;
+  z-index: 9100;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
   background: rgba(9,13,24,0.97);
   gap: 14px;
 }
@@ -140,21 +139,18 @@ canvas { display: block; width: 704px; height: 512px; }
   color: #00e87a;
   box-shadow: 0 0 12px rgba(0,232,122,0.2);
 }
-
-#speedrun-btn { font-size: 0.82rem; padding: 9px 30px; }
 #controls-hint { font-size: 0.68rem; color: #2a3a52; letter-spacing: 0.1em; text-align: center; margin-top: 4px; }
 
 /* ── CUTSCENE ── */
 #cutscene {
   position: fixed; inset: 0;
+  z-index: 9200;
   display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
   background: rgba(0,0,0,0.96);
   transition: opacity 0.4s;
 }
 #cutscene.hidden   { display: none; }
 #cutscene.fade-out { opacity: 0; pointer-events: none; }
-
 #cs-bg { display: none; }
 
 #cs-content {
@@ -166,34 +162,17 @@ canvas { display: block; width: 704px; height: 512px; }
   box-shadow: 0 0 40px rgba(0,100,255,0.05);
   transition: opacity 0.3s;
 }
-
 #cs-header {
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid #131e30; padding-bottom: 12px;
 }
-
-#cs-title-tag {
-  font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 900;
-  letter-spacing: 0.25em; color: #00e87a;
-}
-
-#cs-counter { font-size: 0.7rem; color: #2a3a52; letter-spacing: 0.1em; }
-
-#cs-label {
-  font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 0.25em;
-  color: #445577; text-transform: uppercase; min-height: 14px;
-}
-
-#cs-text {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.95rem; line-height: 1.9;
-  color: #8899aa; min-height: 140px; white-space: pre-wrap;
-}
-
+#cs-title-tag { font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.25em; color: #00e87a; }
+#cs-counter   { font-size: 0.7rem; color: #2a3a52; letter-spacing: 0.1em; }
+#cs-label     { font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: #445577; text-transform: uppercase; min-height: 14px; }
+#cs-text      { font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; line-height: 1.9; color: #8899aa; min-height: 140px; white-space: pre-wrap; }
 #cs-text .highlight { color: #00e87a; }
 #cs-text .danger    { color: #ff3355; }
 #cs-text .success   { color: #00fff9; }
-
 #cs-btn {
   align-self: flex-end; padding: 8px 22px;
   font-family: 'Orbitron', monospace; font-size: 0.72rem; font-weight: 700;
@@ -202,20 +181,16 @@ canvas { display: block; width: 704px; height: 512px; }
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-#cs-btn:hover {
-  background: rgba(0,232,122,0.08);
-  border-color: #00e87a;
-  color: #00e87a;
-}
+#cs-btn:hover { background: rgba(0,232,122,0.08); border-color: #00e87a; color: #00e87a; }
 
 /* ── END SCREEN ── */
 #end-screen {
-  position: fixed; inset: 0; z-index: 2000;
+  position: fixed; inset: 0;
+  z-index: 9300;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0,0,0,0.98);
 }
 #end-screen.hidden { display: none; }
-
 #end-panel {
   width: min(400px, 88vw); padding: 44px 48px;
   border: 1px solid #1e2d4a;
@@ -223,7 +198,6 @@ canvas { display: block; width: 704px; height: 512px; }
   display: flex; flex-direction: column; align-items: center; gap: 32px;
   box-shadow: 0 0 60px rgba(0,232,122,0.08);
 }
-
 #end-title {
   font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900;
   letter-spacing: 0.35em; color: #00e87a; text-transform: uppercase;
@@ -231,29 +205,11 @@ canvas { display: block; width: 704px; height: 512px; }
   text-align: center;
   text-shadow: 0 0 16px rgba(0,232,122,0.5);
 }
-
-#end-stats {
-  display: flex; flex-direction: column; gap: 20px; width: 100%;
-}
-
-.end-stat {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-}
-
-.end-stat-label {
-  font-family: 'Orbitron', monospace; font-size: 0.52rem;
-  letter-spacing: 0.25em; color: #2a3a52; text-transform: uppercase;
-}
-
-.end-stat-value {
-  font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 900;
-  color: var(--green); letter-spacing: 0.05em; line-height: 1;
-}
-
-.end-stat-divider {
-  width: 100%; height: 1px; background: #131e30;
-}
-
+#end-stats  { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.end-stat   { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.end-stat-label { font-family: 'Orbitron', monospace; font-size: 0.52rem; letter-spacing: 0.25em; color: #2a3a52; text-transform: uppercase; }
+.end-stat-value { font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 900; color: var(--green); letter-spacing: 0.05em; line-height: 1; }
+.end-stat-divider { width: 100%; height: 1px; background: #131e30; }
 #end-play-again {
   padding: 11px 34px;
   font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700;
@@ -263,7 +219,4 @@ canvas { display: block; width: 704px; height: 512px; }
   transition: background 0.15s, box-shadow 0.15s;
   text-transform: uppercase;
 }
-#end-play-again:hover {
-  background: rgba(0,232,122,0.1);
-  box-shadow: 0 0 16px rgba(0,232,122,0.25);
-}
+#end-play-again:hover { background: rgba(0,232,122,0.1); box-shadow: 0 0 16px rgba(0,232,122,0.25); }

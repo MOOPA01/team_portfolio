@@ -19,8 +19,8 @@ registerLevel({
   gems: [
     { x: 4,  y: 3,  color: '#00c8ff' }, { x: 8,  y: 3,  color: '#ff00cc' },
     { x: 13, y: 3,  color: '#00c8ff' }, { x: 17, y: 3,  color: '#ff00cc' },
-    { x: 4,  y: 13, color: '#ff00cc' }, { x: 8,  y: 13, color: '#00c8ff' },
-    { x: 13, y: 13, color: '#ff00cc' }, { x: 17, y: 13, color: '#00c8ff' },
+    { x: 8,  y: 13, color: '#00c8ff' },
+    { x: 13, y: 13, color: '#ff00cc' },
     { x: 2,  y: 8,  color: '#ff00cc' }, { x: 20, y: 8,  color: '#00c8ff' },
     { x: 11, y: 7,  color: '#ff00cc' },
   ],
