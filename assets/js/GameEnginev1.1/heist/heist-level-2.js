@@ -30,5 +30,6 @@ registerLevel({
     { x: 4*CELL+CELL/2,  y:13*CELL+CELL/2,  vx: 0,    vy:-4.8 },
     { x: 17*CELL+CELL/2, y:13*CELL+CELL/2,  vx: 0,    vy: 4.8 },
     { x: 12*CELL+CELL/2, y: 11*CELL+CELL/2,  vx: 4.8,  vy: 0 },
+    { x: 11*CELL+CELL/2, y: 8*CELL+CELL/2,  vx: 4.8,  vy: 0 },
   ]
 });
