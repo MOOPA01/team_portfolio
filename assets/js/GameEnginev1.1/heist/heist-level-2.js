@@ -9,8 +9,8 @@ import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL }
 
 registerLevel({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(2,  5, 7, 1), ...rectWall(11, 5, 9, 1),
-    ...rectWall(2, 11, 9, 1), ...rectWall(13,11, 7, 1),
+    ...rectWall(2, 5, 7, 1), ...rectWall(11, 5, 9, 1),
+    ...rectWall(2, 11, 9, 1), ...rectWall(16,11, 4, 1),
     ...rectWall(10, 1, 1, 4), ...rectWall(10,12, 1, 3),
     ...rectWall(5,  8, 2, 1), ...rectWall(15, 8, 2, 1),
   ]),
@@ -29,5 +29,6 @@ registerLevel({
     { x: 17*CELL+CELL/2, y: 3*CELL+CELL/2,  vx:-4.8,  vy: 0   },
     { x: 4*CELL+CELL/2,  y:13*CELL+CELL/2,  vx: 0,    vy:-4.8 },
     { x: 17*CELL+CELL/2, y:13*CELL+CELL/2,  vx: 0,    vy: 4.8 },
+    { x: 12*CELL+CELL/2, y: 11*CELL+CELL/2,  vx: 4.8,  vy: 0 },
   ]
 });
