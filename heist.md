@@ -69,7 +69,7 @@ permalink: /heist
           <div class="end-stat-value" id="end-deaths">0</div>
         </div>
       </div>
-      <button id="end-play-again">[ INTIALIZE AGAIN ]</button>
+      <button id="end-play-again">[ PLAY AGAIN ]</button>
     </div>
   </div>
 

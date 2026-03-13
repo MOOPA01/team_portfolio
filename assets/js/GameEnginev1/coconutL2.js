@@ -33,7 +33,7 @@ class CoconutL2 {
             SCALE_FACTOR: 5,
             STEP_FACTOR: 1000,
             ANIMATION_RATE: 50,
-            INIT_POSITION: { x: 100, y: 300 },
+            INIT_POSITION: { x: 100, y: 350 },
             pixels: { height: 500, width: 500 },
             orientation: { rows: 4, columns: 3 },
             down: { row: 0, start: 0, columns: 3 },
@@ -54,7 +54,7 @@ class CoconutL2 {
             src: path + "/images/gamebuilder/sprites/slime.png",
             SCALE_FACTOR: 8,
             ANIMATION_RATE: 50,
-            INIT_POSITION: { x: 627, y: 150 },
+            INIT_POSITION: { x: 480, y: 208 },
             pixels: { height: 225, width: 225 },
             orientation: { rows: 4, columns: 4 },
             down: { row: 0, start: 0, columns: 3 },
@@ -71,7 +71,7 @@ class CoconutL2 {
             interact: function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }
         };
         const dbarrier_1 = {
-            id: 'dbarrier_1', x: 190, y: 218, width: 32, height: 162, visible: true,
+            id: 'dbarrier_1', x: 200, y: 280, width: 30, height: 120, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
@@ -83,43 +83,43 @@ class CoconutL2 {
         };
 
         const dbarrier_3 = {
-            id: 'dbarrier_3', x: 94, y: 30, width: 219, height: 21, visible: true,
+            id: 'dbarrier_3', x: 200, y: 140, width: 30, height: 125, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_4 = {
-            id: 'dbarrier_4', x: 343, y: 36, width: 28, height: 57, visible: true,
+            id: 'dbarrier_4', x: 320, y: 140, width: 30, height: 130, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_5 = {
-            id: 'dbarrier_5', x: 251, y: 223, width: 140, height: 43, visible: true,
+            id: 'dbarrier_5', x: 310, y: 80, width: 40, height: 30, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_6 = {
-            id: 'dbarrier_6', x: 501, y: 228, width: 20, height: 143, visible: true,
+            id: 'dbarrier_6', x: 450, y: 240, width: 30, height: 140, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_7 = {
-            id: 'dbarrier_7', x: 379, y: 30, width: 112, height: 18, visible: true,
+            id: 'dbarrier_7', x: 260, y: 50, width: 120, height: 30, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_8 = {
-            id: 'dbarrier_8', x: 528, y: 215, width: 34, height: 7, visible: true,
+            id: 'dbarrier_8', x: 380, y: 300, width: 100, height: 30, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
 
         const dbarrier_9 = {
-            id: 'dbarrier_9', x: 574, y: 138, width: 20, height: 74, visible: true,
+            id: 'dbarrier_9', x: 500, y: 170, width: 30, height: 70, visible: true,
             hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
             fromOverlay: true
         };
