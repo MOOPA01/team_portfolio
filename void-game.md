@@ -4,27 +4,24 @@ title: V.O.I.D.EXE
 permalink: /gamify/void
 ---
 
-<!-- ── V.O.I.D.EXE styles ───────────────────────────────────── -->
-<link rel="stylesheet" href="{{site.baseurl}}/assets/css/void-game.css">
+<link rel="stylesheet" href="{{ site.baseurl }}/Voidgamestuff/assets/css/void-game.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 
-<!-- ── Game shell HTML ──────────────────────────────────────── -->
 <div class="scanline"></div>
 
 <button id="fullscreen-btn" title="Toggle fullscreen" onclick="voidToggleFullscreen()">
-  <svg id="fs-icon-expand" viewBox="0 0 20 20">
+  <svg id="fs-icon-expand" viewBox="0 0 20 20" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round">
     <polyline points="1,6 1,1 6,1"/><polyline points="14,1 19,1 19,6"/>
     <polyline points="1,14 1,19 6,19"/><polyline points="14,19 19,19 19,14"/>
   </svg>
-  <svg id="fs-icon-compress" viewBox="0 0 20 20" style="display:none">
+  <svg id="fs-icon-compress" viewBox="0 0 20 20" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" style="display:none">
     <polyline points="6,1 6,6 1,6"/><polyline points="14,6 19,6 14,1"/>
     <polyline points="1,14 6,14 6,19"/><polyline points="19,14 14,14 14,19"/>
   </svg>
 </button>
 
-<!-- Cutscene overlay -->
 <div id="cutscene" class="hidden">
   <div id="cs-bg"></div>
   <div id="cs-content">
@@ -38,7 +35,6 @@ permalink: /gamify/void
   </div>
 </div>
 
-<!-- End screen -->
 <div id="end-screen" class="hidden">
   <div id="end-panel">
     <div id="end-title">// RUN COMPLETE</div>
@@ -57,13 +53,12 @@ permalink: /gamify/void
   </div>
 </div>
 
-<!-- Main game -->
 <div id="wrapper">
   <div id="title">V.O.I.D.EXE</div>
   <div id="hud">
-    <div class="hud-item">LEVEL  <span id="h-level">1</span></div>
+    <div class="hud-item">LEVEL <span id="h-level">1</span></div>
     <div class="hud-item">DEATHS <span id="h-deaths">0</span></div>
-    <div class="hud-item">COINS  <span id="h-coins">0</span>/<span id="h-total">0</span></div>
+    <div class="hud-item">COINS <span id="h-coins">0</span>/<span id="h-total">0</span></div>
   </div>
   <div id="canvas-wrap">
     <canvas id="c"></canvas>
@@ -75,55 +70,48 @@ permalink: /gamify/void
         Reach the green zone.<br>
         Don't touch the red.
       </div>
-      <button id="start-btn" class="void-btn" id="void-start-btn">INITIALIZE</button>
+      <button id="start-btn" class="void-btn">INITIALIZE</button>
       <div id="controls-hint">WASD / ARROW KEYS — MOVE &nbsp;|&nbsp; R — RESTART</div>
     </div>
   </div>
 </div>
 
-<!-- ── Boot script ───────────────────────────────────────────── -->
 <script type="module">
-  import { initGame, startGame, LEVELS }
-    from '{{site.baseurl}}/Voidgamestuff/assets/js/void-core.js';
+  import { initGame, startGame }
+    from '{{ site.baseurl }}/Voidgamestuff/assets/js/void-core.js';
 
-  // Import level files — they call registerLevel() as a side-effect
-  import level1 from'{{site.baseurl}}/Voidgamestuff/assets/js/void-level-1.js';
-  import level2 from '{{site.baseurl}}/Voidgamestuff/assets/js/void-level-2.js';
-  import level4 from'{{site.baseurl}}/Voidgamestuff/assets/js/void-level-3.js';
-
-  // Level 4 exports the ending cutscene function
-  import { showEndingCutscene }
-    from '{{site.baseurl}}/Voidgamestuff/assets/js/void-level-4.js';
-
-  // Also need the intro scenes from level 1
   import { INTRO_SCENES }
-    from '{{site.baseurl}}/Voidgamestuff/assets/js/void-level-1.js';
+    from '{{ site.baseurl }}/Voidgamestuff/assets/js/void-level-1.js';
 
-  // Boot the engine
+  import '{{ site.baseurl }}/Voidgamestuff/assets/js/void-level-2.js';
+  import '{{ site.baseurl }}/Voidgamestuff/assets/js/void-level-3.js';
+
+  import { showEndingCutscene }
+    from '{{ site.baseurl }}/Voidgamestuff/assets/js/void-level-4.js';
+
   initGame({
     canvasId:         'c',
     introScenes:      INTRO_SCENES,
     onEndingCutscene: showEndingCutscene,
   });
 
-  // Wire the INITIALIZE button — it lives in module scope now
   document.getElementById('start-btn').addEventListener('click', startGame);
 
-  // Fullscreen toggle (use unique name to avoid conflicts with site globals)
-  window.voidToggleFullscreen = function() {
+  window.voidToggleFullscreen = function () {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
-      document.getElementById('fs-icon-expand').style.display   = 'none';
+      document.getElementById('fs-icon-expand').style.display  = 'none';
       document.getElementById('fs-icon-compress').style.display = '';
     } else {
       document.exitFullscreen();
-      document.getElementById('fs-icon-expand').style.display   = '';
+      document.getElementById('fs-icon-expand').style.display  = '';
       document.getElementById('fs-icon-compress').style.display = 'none';
     }
   };
+
   document.addEventListener('fullscreenchange', () => {
     const inFs = !!document.fullscreenElement;
-    document.getElementById('fs-icon-expand').style.display   = inFs ? 'none' : '';
+    document.getElementById('fs-icon-expand').style.display  = inFs ? 'none' : '';
     document.getElementById('fs-icon-compress').style.display = inFs ? '' : 'none';
   });
 </script>
