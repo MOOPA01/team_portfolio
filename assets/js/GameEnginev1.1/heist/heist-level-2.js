@@ -20,9 +20,9 @@ registerLevel({
     { x: 4,  y: 3,  color: '#00c8ff' }, { x: 8,  y: 3,  color: '#ff00cc' },
     { x: 13, y: 3,  color: '#00c8ff' }, { x: 17, y: 3,  color: '#ff00cc' },
     { x: 8,  y: 13, color: '#00c8ff' },
-    { x: 13, y: 13, color: '#ff00cc' },
+    { x: 13, y: 11, color: '#ff00cc' },
     { x: 2,  y: 8,  color: '#ff00cc' }, { x: 20, y: 8,  color: '#00c8ff' },
-    { x: 11, y: 7,  color: '#ff00cc' },
+    { x: 11, y: 8,  color: '#ff00cc' },
   ],
   guards: [
     { x: 4*CELL+CELL/2,  y: 3*CELL+CELL/2,  vx: 4.8,  vy: 0   },
