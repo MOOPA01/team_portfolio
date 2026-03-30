@@ -19,7 +19,7 @@ description: "Class of 2029"
 owner_name: Seonyoo Pak
 github_username: MOOPA01 
 github_repo: "team_portfolio" 
-baseurl: "/team_portfolio" 
+baseurl: "/team_portfolio" # the subpath of your site, e.g. /blog
 future: true
 
 # Build settings
