@@ -69,12 +69,19 @@ permalink: /gamify/heist
           <div class="end-stat-value" id="end-deaths">0</div>
         </div>
       </div>
-      <button id="end-play-again">[ PLAY AGAIN ]</button>
+      <button id="end-play-again">[ RUN AGAIN ]</button>
     </div>
   </div>
 
 </div>
 
+<script>window._siteBaseUrl = '{{site.baseurl}}';</script>
+<script type="module">
+  // Expose config globals for non-module NPC code in combined builds
+  import { pythonURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
+  window._pythonURI    = pythonURI;
+  window._fetchOptions = fetchOptions;
+</script>
 <script type="module">
   import { initGame, startGame }  from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
   import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
