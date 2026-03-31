@@ -87,7 +87,7 @@ permalink: /gamify/heist
   import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
-  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
+  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/heist/heist-level-4.js';
 
   initGame({
     canvasId:         'c',

@@ -4,8 +4,8 @@
 //  NPC: CIPHER — AI informant, talks to player via backend
 // =============================================================
 
-import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL }
-  from './heist-core.js';
+const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
+const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await import(_coreUrl);
 
 // pythonURI + fetchOptions are exposed as window globals by heist.md
 // before this module loads (via a separate <script type="module"> that
