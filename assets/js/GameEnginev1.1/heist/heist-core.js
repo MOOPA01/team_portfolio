@@ -4,6 +4,9 @@
 //  Integrated with GameEngine framework
 // =============================================================
 
+import { initNPCSystem } from './heist-npc.js';
+import { initLeaderboard } from './heist-leaderboard.js';
+
 // ─── GRID CONSTANTS (exported for use in level files) ────────
 export const CELL = 32;
 export const COLS = 22;
@@ -34,6 +37,20 @@ export function rectWall(x, y, w, h) {
       cells.push({x: col, y: row});
   return cells;
 }
+
+// ─── MODULE-PRIVATE ENGINE STATE ─────────────────────────────
+let canvas, ctx;
+let level = 0, deaths = 0, totalGems = 0;
+let player, guards, gems, wallSet, wallBarriers, goalRect;
+let dead = false, levelWon = false, deathTimer = 0, winFlash = 0;
+let running = false, particles = [], t = 0;
+let runStartTime = 0, timerActive = false;
+let csQueue = [], csIndex = 0, csOnComplete = null;
+let _onEndingCutscene = null, _introScenes = null;
+let npc = null;
+let leaderboard = null;
+let currentRunScore = null;
+let npcEntity = null; // NPC position on level 1
 
 // ─── PRIVATE WALL HELPERS ────────────────────────────────────
 function buildWallSet(walls) {
@@ -74,8 +91,9 @@ class Gem {
     this.collected            = true;
     this.collectCooldownUntil = performance.now() + 200;
     this.collectCount        += 1;
-    if (onCollect) onCollect(this);
-    return true;
+    totalGems++;
+    // REMOVED: spawnParticles(this.x, this.y, this.color, 14);
+    updateHUD(); return true;
   }
   
   checkPlayerCollision(px, py, pr) {
@@ -107,555 +125,576 @@ class PlayerController {
   
   handleKeyDown(e) {
     this.pressedKeys[e.key] = true;
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-    this.updateVelocity();
   }
   
   handleKeyUp(e) {
-    if (e.key in this.pressedKeys) delete this.pressedKeys[e.key];
-    this.updateVelocity();
+    this.pressedKeys[e.key] = false;
   }
   
   updateVelocity() {
-    this.velocity.x = 0; this.velocity.y = 0; this.moved = false;
-    const k = this.keypress, p = this.pressedKeys;
-    const goRight = p[k.right] || p[k.rightAlt] || p[k.rightAlt2];
-    const goLeft  = p[k.left]  || p[k.leftAlt]  || p[k.leftAlt2];
-    const goUp    = p[k.up]    || p[k.upAlt]    || p[k.upAlt2];
-    const goDown  = p[k.down]  || p[k.downAlt]  || p[k.downAlt2];
-    if (goRight || goLeft) { this.moved = true; this.velocity.x = goRight ? this.xVelocity : -this.xVelocity; }
-    if (goUp    || goDown) { this.moved = true; this.velocity.y = goDown  ? this.yVelocity : -this.yVelocity; }
-    if (this.velocity.x !== 0 && this.velocity.y !== 0) { this.velocity.x *= 0.707; this.velocity.y *= 0.707; }
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    const keys = this.pressedKeys;
+    const up = keys['ArrowUp'] || keys['w'] || keys['W'];
+    const dn = keys['ArrowDown'] || keys['s'] || keys['S'];
+    const lt = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const rt = keys['ArrowRight'] || keys['d'] || keys['D'];
+    if (up) this.velocity.y -= this.yVelocity;
+    if (dn) this.velocity.y += this.yVelocity;
+    if (lt) this.velocity.x -= this.xVelocity;
+    if (rt) this.velocity.x += this.xVelocity;
+    // Diagonal speed normalization
+    if (this.velocity.x !== 0 && this.velocity.y !== 0) {
+      this.velocity.x *= 0.707;
+      this.velocity.y *= 0.707;
+    }
   }
-  
-  move(dead, levelWon) {
-    if (dead || levelWon) return;
-    const r = this.r - 1, dx = this.velocity.x, dy = this.velocity.y;
-    const nx = this.x + dx;
-    if (!this.isWall(nx-r,this.y) && !this.isWall(nx+r,this.y) &&
-        !this.isWall(nx-r,this.y-r) && !this.isWall(nx+r,this.y-r) &&
-        !this.isWall(nx-r,this.y+r) && !this.isWall(nx+r,this.y+r)) this.x = nx;
-    else this.velocity.x = 0;
-    const ny = this.y + dy;
-    if (!this.isWall(this.x,ny-r) && !this.isWall(this.x,ny+r) &&
-        !this.isWall(this.x-r,ny-r) && !this.isWall(this.x+r,ny-r) &&
-        !this.isWall(this.x-r,ny) && !this.isWall(this.x+r,ny)) this.y = ny;
-    else this.velocity.y = 0;
+  move() {
+    const nextX = this.x + this.velocity.x;
+    const nextY = this.y + this.velocity.y;
+    if (!isWall(nextX, nextY)) this.x = nextX;
+    if (!isWall(this.x, nextY)) this.y = nextY;
   }
-  
-  draw(ctx, dead) {
-    if (dead || !ctx) return;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2);
     ctx.fillStyle = '#00e87a';
     ctx.fill();
-    ctx.fillStyle = '#001a0a';
-    ctx.beginPath();
-    ctx.arc(this.x - 3, this.y - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(this.x + 3, this.y - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.strokeStyle = '#00b860';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Eyes
+    ctx.fillStyle = '#0a0e1a';
+    ctx.beginPath(); ctx.arc(-3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
   
   destroy() {
     window.removeEventListener('keydown', this._boundKeyDown);
-    window.removeEventListener('keyup',   this._boundKeyUp);
+    window.removeEventListener('keyup', this._boundKeyUp);
   }
 }
 
-// ─── HEIST GAME CLASS (GameEngine compatible) ────────────────
-export class HeistGame {
-  constructor(gameEnv) {
-    this.gameEnv = gameEnv;
-    this.canvas = gameEnv.gameCanvas;
-    this.ctx = this.canvas.getContext('2d');
-    
-    // Game state
-    this.level = 0;
-    this.deaths = 0;
-    this.totalGems = 0;
-    this.player = null;
-    this.guards = [];
-    this.gems = [];
-    this.wallSet = null;
-    this.wallBarriers = [];
-    this.goalRect = null;
-    this.dead = false;
-    this.levelWon = false;
-    this.deathTimer = 0;
-    this.winFlash = 0;
-    this.running = false;
-    this.particles = [];
-    this.t = 0;
-    this.runStartTime = 0;
-    this.timerActive = false;
-    
-    // Cutscene state
-    this.csQueue = [];
-    this.csIndex = 0;
-    this.csOnComplete = null;
-    this._onEndingCutscene = null;
-    this._introScenes = null;
-    
-    // Store instance for Game.js API
-    window._heistGameInstance = this;
-  }
+// ─── LEVEL INIT ──────────────────────────────────────────────
+function initLevel(idx) {
+  const L = LEVELS[idx];
+  wallSet = buildWallSet(L.walls);
+  wallBarriers = buildBarriers(L.walls);
+  if (player && player.destroy) player.destroy();
+  player = new PlayerController({
+    x: L.start.x * CELL + CELL/2,
+    y: L.start.y * CELL + CELL/2,
+    r: 9,
+    speed: 3.2,
+  });
+  goalRect = { x:L.goal.x*CELL, y:L.goal.y*CELL, w:L.goal.w*CELL, h:L.goal.h*CELL };
+  gems = L.gems.map(g => new Gem({
+    x: g.x * CELL + CELL/2,
+    y: g.y * CELL + CELL/2,
+    r: g.r || 6,
+    value: g.value || 1,
+    color: g.color || '#00c8ff',
+  }));
+  guards = L.guards.map(g => ({...g, r: g.r || 10}));
+  dead = false; levelWon = false; deathTimer = 0; winFlash = 0; particles = [];
+  if (idx === 0 && !timerActive) { runStartTime = Date.now(); timerActive = true; }
+  document.getElementById('h-level').textContent = idx + 1;
+  document.getElementById('h-total').textContent = gems.length;
   
-  initialize() {
-    this.canvas.width  = W;
-    this.canvas.height = H;
-    this.bindCutsceneBtn();
-    this.setupKeyboardShortcuts();
-  }
-  
-  setupKeyboardShortcuts() {
-    window.addEventListener('keydown', (e) => {
-      if ((e.key === 'z' || e.key === 'Z') && this.running && !this.dead) {
-        if (this.level < LEVELS.length - 1) { 
-          this.level++; 
-          this.initLevel(this.level); 
-        } else if (this._onEndingCutscene) { 
-          this._onEndingCutscene(); 
-        }
-      }
-      if ((e.key === 'r' || e.key === 'R') && this.running) {
-        this.resetGame();
-      }
-    });
-  }
-  
-  isWall(px, py) {
-    return this.wallSet.has(`${Math.floor(px / CELL)},${Math.floor(py / CELL)}`);
-  }
-  
-  buildBarriers(walls) {
-    return walls.map(w => ({
-      x: w.x * CELL, y: w.y * CELL, width: CELL, height: CELL,
-      color: 'rgba(20,24,36,1)', stroke: 'rgba(80,100,160,0.5)',
-      visible: true, hitbox: { widthPercentage: 1.0, heightPercentage: 1.0 }
-    }));
-  }
-  
-  initLevel(idx) {
-    const L = LEVELS[idx];
-    this.wallSet = buildWallSet(L.walls);
-    this.wallBarriers = this.buildBarriers(L.walls);
-    
-    if (this.player && this.player.destroy) this.player.destroy();
-    
-    this.player = new PlayerController({
-      x: L.start.x * CELL + CELL/2,
-      y: L.start.y * CELL + CELL/2,
-      r: 9,
-      speed: 3.2,
-    }, this.isWall.bind(this));
-    
-    this.goalRect = { 
-      x: L.goal.x*CELL, 
-      y: L.goal.y*CELL, 
-      w: L.goal.w*CELL, 
-      h: L.goal.h*CELL 
+  // Initialize NPC entity on level 1 at a specific position
+  if (idx === 0) {
+    npcEntity = {
+      x: 10.5 * CELL,  // Place NPC at grid position (10, 10)
+      y: 10.5 * CELL,
+      r: 8,
+      color: '#ffdd00'
     };
-    
-    this.gems = L.gems.map(g => new Gem({
-      x: g.x * CELL + CELL/2,
-      y: g.y * CELL + CELL/2,
-      r: g.r || 6,
-      value: g.value || 1,
-      color: g.color || '#00c8ff',
-    }, this.ctx));
-    
-    this.guards = L.guards.map(g => ({...g, r: g.r || 10}));
-    this.dead = false;
-    this.levelWon = false;
-    this.deathTimer = 0;
-    this.winFlash = 0;
-    this.particles = [];
-    
-    if (idx === 0 && !this.timerActive) { 
-      this.runStartTime = Date.now(); 
-      this.timerActive = true; 
-    }
-    
-    this.updateHUD();
+    const hintEl = document.getElementById('npc-hint');
+    if (hintEl) hintEl.classList.add('active');
+  } else {
+    npcEntity = null;
+    const hintEl = document.getElementById('npc-hint');
+    if (hintEl) hintEl.classList.remove('active');
   }
   
-  updateHUD() {
-    const deathsEl = document.getElementById('h-deaths');
-    const gemsEl = document.getElementById('h-gems');
-    const totalEl = document.getElementById('h-total');
-    const levelEl = document.getElementById('h-level');
-    
-    if (deathsEl) deathsEl.textContent = this.deaths;
-    if (gemsEl) gemsEl.textContent = this.gems.filter(g => g.collected).length;
-    if (totalEl) totalEl.textContent = this.gems.length;
-    if (levelEl) levelEl.textContent = this.level + 1;
-  }
+  // Reset NPC chat history
+  if (npc) npc.reset();
   
-  spawnParticles(x, y, color, count = 18) {
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI*2/count)*i + Math.random()*0.4;
-      const speed = 1.5 + Math.random()*4;
-      this.particles.push({
-        x, y,
-        vx: Math.cos(angle)*speed, 
-        vy: Math.sin(angle)*speed,
-        life: 1, 
-        color, 
-        r: 1.5 + Math.random()*3
-      });
-    }
-  }
-  
-  moveGuards() {
-    if (this.levelWon) return;
-    const L = LEVELS[this.level];
-    this.guards.forEach((g, i) => {
-      const orig = L.guards[i], r = g.r;
-      if (orig.patrol) {
-        const { ax, ay, bx, by } = orig.patrol;
-        const dx = bx - ax, dy = by - ay;
-        const len = Math.sqrt(dx*dx + dy*dy);
-        g._t = (g._t || 0) + (g._dir || 1) * (orig.speed || 2.5) / len;
-        if (g._t >= 1) { g._t = 1; g._dir = -1; }
-        if (g._t <= 0) { g._t = 0; g._dir =  1; }
-        g.x = ax + dx * g._t;
-        g.y = ay + dy * g._t;
-      } else if (orig.bounce) {
-        g.x += g.vx; g.y += g.vy;
-        if (this.isWall(g.x-r,g.y)||this.isWall(g.x+r,g.y)) { g.vx*=-1; g.x+=g.vx*2; }
-        if (this.isWall(g.x,g.y-r)||this.isWall(g.x,g.y+r)) { g.vy*=-1; g.y+=g.vy*2; }
-      } else if (orig.vx !== 0) {
-        g.x += g.vx;
-        if (this.isWall(g.x-r,g.y)||this.isWall(g.x+r,g.y)||this.isWall(g.x-r,g.y-r)||this.isWall(g.x+r,g.y-r)) {
-          g.vx *= -1; g.x += g.vx*2;
-        }
-      } else {
-        g.y += g.vy;
-        if (this.isWall(g.x,g.y-r)||this.isWall(g.x,g.y+r)||this.isWall(g.x-r,g.y-r)||this.isWall(g.x+r,g.y-r)) {
-          g.vy *= -1; g.y += g.vy*2;
-        }
-      }
-    });
-  }
-  
-  checkCollisions() {
-    if (this.dead || this.levelWon) return;
-    
-    for (const g of this.guards) {
-      const dx = this.player.x - g.x, dy = this.player.y - g.y;
-      if (Math.sqrt(dx*dx + dy*dy) < this.player.r + g.r - 2) { 
-        this.die(); 
-        return; 
-      }
-    }
-    
-    for (const gem of this.gems) {
-      if (gem.checkPlayerCollision(this.player.x, this.player.y, this.player.r)) {
-        gem.collect(() => {
-          this.totalGems++;
-          this.spawnParticles(gem.x, gem.y, gem.color, 14);
-          this.updateHUD();
-        });
-      }
-    }
-    
-    if (this.gems.every(g => g.collected) &&
-        this.player.x > this.goalRect.x && this.player.x < this.goalRect.x + this.goalRect.w &&
-        this.player.y > this.goalRect.y && this.player.y < this.goalRect.y + this.goalRect.h) {
-      this.winLevel();
-    }
-  }
-  
-  die() {
-    if (this.dead) return;
-    this.dead = true;
-    this.deaths++;
-    this.deathTimer = 70;
-    this.spawnParticles(this.player.x, this.player.y, '#ff3355', 28);
-    this.updateHUD();
-  }
-  
-  winLevel() {
-    this.levelWon = true;
-    this.winFlash = 70;
-    this.spawnParticles(this.player.x, this.player.y, '#00e87a', 32);
-    this.spawnParticles(this.goalRect.x + this.goalRect.w/2, this.goalRect.y + this.goalRect.h/2, '#00fff9', 20);
-  }
-  
-  resetGame() {
-    this.level = 0;
-    this.deaths = 0;
-    this.totalGems = 0;
-    this.timerActive = false;
-    this.initLevel(0);
-  }
-  
-  showEndScreen() {
-    this.timerActive = false;
-    const totalMs = Date.now() - this.runStartTime;
-    const endTimeEl = document.getElementById('end-time');
-    const endDeathsEl = document.getElementById('end-deaths');
-    const endScreenEl = document.getElementById('end-screen');
-    const canvasWrapEl = document.getElementById('canvas-wrap');
-    
-    if (endTimeEl) endTimeEl.textContent = this.formatTime(totalMs);
-    if (endDeathsEl) endDeathsEl.textContent = String(this.deaths);
-    if (canvasWrapEl) canvasWrapEl.style.display = 'none';
-    if (endScreenEl) endScreenEl.classList.remove('hidden');
-    
-    const playAgainBtn = document.getElementById('end-play-again');
-    if (playAgainBtn) {
-      playAgainBtn.onclick = () => {
-        if (endScreenEl) endScreenEl.classList.add('hidden');
-        if (canvasWrapEl) canvasWrapEl.style.display = '';
-        this.resetGame();
-        this.running = true;
-      };
-    }
-  }
-  
-  formatTime(ms) {
-    const s = Math.floor(ms/1000), m = Math.floor(s/60);
-    return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((ms%1000)/10)).padStart(2,'0')}`;
-  }
-  
-  drawFloorGrid() {
-    this.ctx.strokeStyle = 'rgba(30,60,100,0.2)';
-    this.ctx.lineWidth = 0.5;
-    for (let x = 0; x <= W; x += CELL) {
-      this.ctx.beginPath(); 
-      this.ctx.moveTo(x, 0); 
-      this.ctx.lineTo(x, H); 
-      this.ctx.stroke();
-    }
-    for (let y = 0; y <= H; y += CELL) {
-      this.ctx.beginPath(); 
-      this.ctx.moveTo(0, y); 
-      this.ctx.lineTo(W, y); 
-      this.ctx.stroke();
-    }
-  }
-  
-  drawGuard(g) {
-    this.ctx.beginPath();
-    this.ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
-    this.ctx.fillStyle = '#cc2244';
-    this.ctx.fill();
-    this.ctx.strokeStyle = '#881133';
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-  }
-  
-  drawTimer() {
-    if (!this.timerActive) return;
-    const str = this.formatTime(Date.now() - this.runStartTime);
-    const pad=8, fw=9, tw=str.length*fw, bx=W-tw-pad*2-10, by=8, bw=tw+pad*2, bh=22;
-    this.ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    this.ctx.beginPath();
-    this.ctx.roundRect(bx, by, bw, bh, 4);
-    this.ctx.fill();
-    this.ctx.strokeStyle = 'rgba(0,200,120,0.15)';
-    this.ctx.lineWidth = 1;
-    this.ctx.stroke();
-    this.ctx.font = '13px Orbitron, monospace';
-    this.ctx.fillStyle = 'rgba(0,230,140,0.85)';
-    this.ctx.textAlign = 'right';
-    this.ctx.fillText(str, W-10-pad+pad, by+bh-6);
-    this.ctx.textAlign = 'left';
-  }
-  
-  draw() {
-    // Background
-    this.ctx.fillStyle = '#0a0e1a';
-    this.ctx.fillRect(0, 0, W, H);
-    this.drawFloorGrid();
+  updateHUD();
+}
 
-    // Goal zone
-    const allCollected = this.gems.every(g => g.collected);
-    this.ctx.fillStyle = allCollected ? 'rgba(0,232,122,0.22)' : 'rgba(0,232,122,0.05)';
-    this.ctx.fillRect(this.goalRect.x, this.goalRect.y, this.goalRect.w, this.goalRect.h);
-    this.ctx.strokeStyle = allCollected ? '#00e87a' : 'rgba(0,232,122,0.25)';
-    this.ctx.lineWidth = 1.5;
-    this.ctx.strokeRect(this.goalRect.x+0.5, this.goalRect.y+0.5, this.goalRect.w-1, this.goalRect.h-1);
-    if (allCollected) {
-      this.ctx.fillStyle = '#00e87a';
-      this.ctx.font = 'bold 10px Share Tech Mono';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText('EXTRACT', this.goalRect.x + this.goalRect.w/2, this.goalRect.y + this.goalRect.h/2 + 4);
-      this.ctx.textAlign = 'left';
-    }
+function updateHUD() {
+  document.getElementById('h-deaths').textContent = deaths;
+  document.getElementById('h-gems').textContent   = gems.filter(g => g.collected).length;
+}
 
-    // Walls
-    this.wallBarriers.forEach(b => {
-      if (!b.visible) return;
-      this.ctx.fillStyle = b.color;
-      this.ctx.fillRect(b.x, b.y, b.width, b.height);
-      this.ctx.strokeStyle = b.stroke;
-      this.ctx.lineWidth = 0.5;
-      this.ctx.strokeRect(b.x+0.5, b.y+0.5, b.width-1, b.height-1);
-      this.ctx.strokeStyle = 'rgba(60,90,150,0.15)';
-      this.ctx.beginPath();
-      this.ctx.moveTo(b.x+2, b.y+2);
-      this.ctx.lineTo(b.x+b.width-2, b.y+b.height-2);
-      this.ctx.stroke();
-      this.ctx.beginPath();
-      this.ctx.moveTo(b.x+b.width-2, b.y+2);
-      this.ctx.lineTo(b.x+2, b.y+b.height-2);
-      this.ctx.stroke();
-    });
+// ─── TIMER ───────────────────────────────────────────────────
+function formatTime(ms) {
+  const s = Math.floor(ms/1000), m = Math.floor(s/60);
+  return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((ms%1000)/10)).padStart(2,'0')}`;
+}
+
+function drawTimer() {
+  if (!timerActive) return;
+  const str = formatTime(Date.now() - runStartTime);
+  const pad=8, fw=9, tw=str.length*fw, bx=W-tw-pad*2-10, by=8, bw=tw+pad*2, bh=22;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,200,120,0.15)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.font = '13px Orbitron, monospace'; ctx.fillStyle = 'rgba(0,230,140,0.85)';
+  ctx.textAlign = 'right'; ctx.fillText(str, W-10-pad+pad, by+bh-6); ctx.textAlign = 'left';
+}
+
+// ─── END SCREEN ──────────────────────────────────────────────
+export function showEndScreen() {
+  timerActive = false;
+  const totalMs = Date.now() - runStartTime;
+  document.getElementById('end-time').textContent   = formatTime(totalMs);
+  document.getElementById('end-deaths').textContent = String(deaths);
+  document.getElementById('canvas-wrap').style.display = 'none';
+  document.getElementById('end-screen').classList.remove('hidden');
+  
+  // Save score and display leaderboard
+  currentRunScore = leaderboard.addScore('temp_player', totalMs, deaths);
+  renderLeaderboard(currentRunScore);
+  
+  document.getElementById('end-play-again').onclick = () => {
+    document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('canvas-wrap').style.display = '';
+    level = 0; deaths = 0; totalGems = 0; timerActive = false;
+    currentRunScore = null;
+    initLevel(0); running = true; loop();
+  };
+}
+
+// ─── LEADERBOARD RENDERING ───────────────────────────────────
+function renderLeaderboard(currentScore) {
+  const topScores = leaderboard.getTop5();
+  const tableBody = document.querySelector('#leaderboard-table tbody');
+  
+  tableBody.innerHTML = '';
+  
+  if (topScores.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = '<td colspan="4" id="leaderboard-empty">No scores yet. Be the first!</td>';
+    tableBody.appendChild(emptyRow);
+    return;
+  }
+  
+  topScores.forEach((score, idx) => {
+    const row = document.createElement('tr');
+    if (currentScore && score.id === currentScore.id) {
+      row.classList.add('current-player');
+    }
+    
+    row.innerHTML = `
+      <td class="rank">#${idx + 1}</td>
+      <td class="name">${escapeHtml(score.name)}</td>
+      <td class="time">${formatTime(score.time)}</td>
+      <td class="deaths">${score.deaths}</td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+// ─── PARTICLES (DISABLED - no visuals) ───────────────────────
+function spawnParticles(x, y, color, count=18) {
+  // Particles disabled - no visual effect
+  return;
+}
+
+// ─── GUARDS (enemies) ────────────────────────────────────────
+function moveGuards() {
+  if (levelWon) return;
+  
+  guards.forEach((g) => {
+    // If guard has vx/vy, move it (works for all existing levels)
+    if (g.vx !== undefined || g.vy !== undefined) {
+      if (g.vx === undefined) g.vx = 0;
+      if (g.vy === undefined) g.vy = 0;
+      
+      // Try moving in X direction
+      const nextX = g.x + g.vx;
+      const nextY = g.y + g.vy;
+      
+      // Check if new position would collide with walls
+      const canMoveX = !checkGuardWallCollision(nextX, g.y, g.r);
+      const canMoveY = !checkGuardWallCollision(g.x, nextY, g.r);
+      
+      // Move in X if no collision
+      if (canMoveX) {
+        g.x = nextX;
+      } else if (g.vx !== 0) {
+        g.vx *= -1; // Bounce off wall in X
+      }
+      
+      // Move in Y if no collision
+      if (canMoveY) {
+        g.y = nextY;
+      } else if (g.vy !== 0) {
+        g.vy *= -1; // Bounce off wall in Y
+      }
+      
+      // Keep in bounds
+      g.x = Math.max(g.r, Math.min(W - g.r, g.x));
+      g.y = Math.max(g.r, Math.min(H - g.r, g.y));
+    }
+  });
+}
+
+// Check if a guard position collides with walls
+function checkGuardWallCollision(gx, gy, gr) {
+  // Check all wall cells in the area
+  for (let x = Math.floor((gx - gr) / CELL); x <= Math.floor((gx + gr) / CELL); x++) {
+    for (let y = Math.floor((gy - gr) / CELL); y <= Math.floor((gy + gr) / CELL); y++) {
+      if (wallSet.has(`${x},${y}`)) {
+        // Circle-rectangle collision
+        const closestX = Math.max(x * CELL, Math.min(gx, (x + 1) * CELL));
+        const closestY = Math.max(y * CELL, Math.min(gy, (y + 1) * CELL));
+        const dx = gx - closestX;
+        const dy = gy - closestY;
+        if (dx * dx + dy * dy < gr * gr) {
+          return true; // Collision detected
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// ─── COLLISION ───────────────────────────────────────────────
+function checkCollisions() {
+  if (dead || levelWon) return;
+  for (const g of guards) {
+    const dx = player.x - g.x, dy = player.y - g.y;
+    if (Math.sqrt(dx*dx + dy*dy) < player.r + g.r) {
+      die(); return;
+    }
+  }
+  for (const gem of gems) {
+    if (gem.checkPlayerCollision(player.x, player.y, player.r)) gem.collect();
+  }
+  if (gems.every(g => g.collected) &&
+      player.x > goalRect.x && player.x < goalRect.x + goalRect.w &&
+      player.y > goalRect.y && player.y < goalRect.y + goalRect.h) {
+    winLevel();
+  }
+}
+
+function die() {
+  if (dead) return;
+  dead = true; deaths++; deathTimer = 70;
+  // REMOVED: spawnParticles(player.x, player.y, '#ff3355', 28);
+  updateHUD();
+}
+
+function winLevel() {
+  levelWon = true; winFlash = 70;
+  // REMOVED: spawnParticles(player.x, player.y, '#00e87a', 32);
+  // REMOVED: spawnParticles(goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2, '#00fff9', 20);
+  setTimeout(() => {
+    level++;
+    if (level >= LEVELS.length) {
+      showEndScreen();
+    } else {
+      initLevel(level);
+      running = true;
+      loop();
+    }
+  }, 2000);
+}
+
+// ─── DRAW ────────────────────────────────────────────────────
+function drawFloorGrid() {
+  ctx.strokeStyle = 'rgba(30,60,100,0.2)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= W; x += CELL) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= H; y += CELL) {
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+}
+
+function drawGuard(g) {
+  ctx.beginPath();
+  ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+  ctx.fillStyle = '#cc2244';
+  ctx.fill();
+  ctx.strokeStyle = '#881133';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawNPCEntity() {
+  if (!npcEntity) return;
+  ctx.beginPath();
+  ctx.arc(npcEntity.x, npcEntity.y, npcEntity.r, 0, Math.PI * 2);
+  ctx.fillStyle = npcEntity.color;
+  ctx.fill();
+  ctx.strokeStyle = '#ccaa00';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Draw a small icon/indicator
+  ctx.font = 'bold 12px Arial';
+  ctx.fillStyle = '#0a0e1a';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', npcEntity.x, npcEntity.y);
+}
+
+function draw() {
+  // Background
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, W, H);
+  drawFloorGrid();
+
+  // Goal zone
+  const allCollected = gems.every(g => g.collected);
+  ctx.fillStyle = allCollected ? 'rgba(0,232,122,0.22)' : 'rgba(0,232,122,0.05)';
+  ctx.fillRect(goalRect.x, goalRect.y, goalRect.w, goalRect.h);
+  ctx.strokeStyle = allCollected ? '#00e87a' : 'rgba(0,232,122,0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(goalRect.x+0.5, goalRect.y+0.5, goalRect.w-1, goalRect.h-1);
+  if (allCollected) {
+    ctx.font = 'bold 16px Orbitron, monospace'; ctx.fillStyle = '#00e87a';
+    ctx.textAlign = 'center'; ctx.fillText('EXTRACT', goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2 + 6);
+  }
+
+  // Walls
+  wallBarriers.forEach(b => {
+    ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.strokeStyle = b.stroke; ctx.lineWidth = 1; ctx.strokeRect(b.x, b.y, b.width, b.height);
+    ctx.strokeStyle = b.stroke; ctx.lineWidth = 0.5;
+    for (let i = 0; i < b.width; i += 4) {
+      ctx.beginPath(); ctx.moveTo(b.x + i, b.y); ctx.lineTo(b.x + i + 2, b.y + b.height); ctx.stroke();
+    }
+  });
 
     // Gems
     this.gems.forEach(g => g.draw());
 
-    // Guards
-    this.guards.forEach(g => this.drawGuard(g));
+  // Guards
+  guards.forEach(g => drawGuard(g));
+
+  // NPC Entity
+  drawNPCEntity();
 
     // Player
     this.player.draw(this.ctx, this.dead);
 
-    // Particles
-    this.particles = this.particles.filter(p => p.life > 0);
-    this.particles.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.91; p.vy *= 0.91; p.life -= 0.022;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI * 2);
-      this.ctx.globalAlpha = Math.max(0, p.life);
-      this.ctx.fillStyle   = p.color;
-      this.ctx.fill();
-      this.ctx.globalAlpha = 1;
-    });
+  // Particles (now disabled)
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    p.x += p.vx; p.y += p.vy;
+    p.life--; p.size *= 0.98;
+  });
 
-    // Win flash
-    if (this.levelWon && this.winFlash > 0) {
-      this.ctx.fillStyle = `rgba(0,232,122,${this.winFlash/70 * 0.28})`;
-      this.ctx.fillRect(0, 0, W, H);
-      this.winFlash--;
-      if (this.winFlash === 0) {
-        if (this.level < LEVELS.length - 1) { 
-          this.level++; 
-          this.initLevel(this.level); 
-        } else if (this._onEndingCutscene) { 
-          this._onEndingCutscene(); 
+  // Win flash
+  if (levelWon && winFlash > 0) {
+    const alpha = (winFlash / 70) * 0.3;
+    ctx.fillStyle = `rgba(0, 232, 122, ${alpha})`;
+    ctx.fillRect(0, 0, W, H);
+    winFlash--;
+  }
+
+  // Death flash
+  if (dead && deathTimer > 0) {
+    const alpha = (deathTimer / 70) * 0.3;
+    ctx.fillStyle = `rgba(255, 51, 85, ${alpha})`;
+    ctx.fillRect(0, 0, W, H);
+    deathTimer--;
+    if (deathTimer === 0) {
+      initLevel(level);
+      dead = false;
+    }
+  }
+
+  drawTimer();
+}
+
+// ─── LOOP ────────────────────────────────────────────────────
+function loop() {
+  if (!running) return;
+  t++;
+  player.updateVelocity(); player.move();
+  moveGuards(); checkCollisions(); draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── CUTSCENE ────────────────────────────────────────────────
+export function showCutscene(scenes, onComplete) {
+  csQueue = scenes; csIndex = 0; csOnComplete = onComplete;
+  document.getElementById('cutscene').classList.remove('hidden', 'fade-out');
+  renderCutsceneSlide();
+}
+
+function renderCutsceneSlide() {
+  const scene = csQueue[csIndex];
+  document.getElementById('cs-label').textContent   = scene.label;
+  document.getElementById('cs-counter').textContent = `${csIndex+1} / ${csQueue.length}`;
+  document.getElementById('cs-text').innerHTML      = scene.text;
+  const btnEl = document.getElementById('cs-btn');
+  btnEl.textContent = (csIndex === csQueue.length - 1) ? '[ EXECUTE ]' : '[ CONTINUE ]';
+}
+
+function bindCutsceneBtn() {
+  document.getElementById('cs-btn').addEventListener('click', () => {
+    csIndex++;
+    if (csIndex < csQueue.length) {
+      renderCutsceneSlide();
+    } else {
+      document.getElementById('cutscene').classList.add('fade-out');
+      setTimeout(() => {
+        document.getElementById('cutscene').classList.add('hidden');
+        if (csOnComplete) csOnComplete();
+      }, 600);
+    }
+  });
+}
+
+// ─── NPC SYSTEM BINDING ──────────────────────────────────────
+function bindNPCSystem() {
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'e' || e.key === 'E') && running && level === 0) {
+      // Check if player is near NPC entity
+      if (npcEntity) {
+        const dx = player.x - npcEntity.x;
+        const dy = player.y - npcEntity.y;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance < 50) { // Interaction radius
+          toggleNPCChat();
         }
       }
     }
+  });
 
-    // Death flash
-    if (this.dead && this.deathTimer > 0) {
-      this.ctx.fillStyle = `rgba(255,30,60,${this.deathTimer/70 * 0.35})`;
-      this.ctx.fillRect(0, 0, W, H);
-      this.deathTimer--;
-      if (this.deathTimer === 0) this.initLevel(this.level);
-    }
+  document.getElementById('npc-send-btn').addEventListener('click', sendNPCMessage);
+  document.getElementById('npc-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendNPCMessage();
+  });
 
-    this.drawTimer();
-  }
-  
-  update() {
-    if (!this.running) return;
-    this.t++;
-    this.player.updateVelocity();
-    this.player.move(this.dead, this.levelWon);
-    this.moveGuards();
-    this.checkCollisions();
-    this.draw();
-  }
-  
-  showCutscene(scenes, onComplete) {
-    this.csQueue = scenes;
-    this.csIndex = 0;
-    this.csOnComplete = onComplete;
-    const csEl = document.getElementById('cutscene');
-    if (csEl) csEl.classList.remove('hidden', 'fade-out');
-    this.renderCutsceneSlide();
-  }
-  
-  renderCutsceneSlide() {
-    const scene = this.csQueue[this.csIndex];
-    const labelEl = document.getElementById('cs-label');
-    const counterEl = document.getElementById('cs-counter');
-    const textEl = document.getElementById('cs-text');
-    const btnEl = document.getElementById('cs-btn');
-    
-    if (labelEl) labelEl.textContent = scene.label;
-    if (counterEl) counterEl.textContent = `${this.csIndex+1} / ${this.csQueue.length}`;
-    if (textEl) textEl.innerHTML = scene.text;
-    if (btnEl) btnEl.textContent = (this.csIndex === this.csQueue.length - 1) ? '[ EXECUTE ]' : '[ CONTINUE ]';
-  }
-  
-  bindCutsceneBtn() {
-    const btnEl = document.getElementById('cs-btn');
-    if (!btnEl) return;
-    btnEl.removeEventListener('click', this._csHander);
-    this._csHandler = () => {
-      this.csIndex++;
-      if (this.csIndex < this.csQueue.length) {
-        const el = document.getElementById('cs-content');
-        if (el) {
-          el.style.opacity = '0.3';
-          setTimeout(() => { 
-            if (el) el.style.opacity = '1'; 
-            this.renderCutsceneSlide(); 
-          }, 300);
-        }
-      } else {
-        const csEl = document.getElementById('cutscene');
-        if (csEl) {
-          csEl.classList.add('fade-out');
-          setTimeout(() => {
-            csEl.classList.add('hidden');
-            csEl.classList.remove('fade-out');
-            if (this.csOnComplete) this.csOnComplete();
-          }, 600);
-        }
-      }
-    };
-    btnEl.addEventListener('click', this._csHandler);
-  }
-  
-  destroy() {
-    if (this.player && this.player.destroy) {
-      this.player.destroy();
-    }
+  document.getElementById('npc-close-btn').addEventListener('click', closeNPCChat);
+}
+
+function toggleNPCChat() {
+  const modal = document.getElementById('npc-modal');
+  modal.classList.toggle('active');
+  if (modal.classList.contains('active')) {
+    document.getElementById('npc-input').focus();
+    running = false; // Pause game
+  } else {
+    running = true; // Resume game
+    loop();
   }
 }
 
+function closeNPCChat() {
+  document.getElementById('npc-modal').classList.remove('active');
+  running = true;
+  loop();
+}
 
-// ─── END SCREEN ──────────────────────────────────────────────
-export function showEndScreen() {
-  if (window._heistGameInstance) {
-    window._heistGameInstance.showEndScreen();
-  }
+function sendNPCMessage() {
+  const input = document.getElementById('npc-input');
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  // Add user message
+  npc.addMessage('user', userText);
+  displayMessage('user', userText);
+  input.value = '';
+
+  // Generate and display bot response
+  const response = npc.generateResponse(userText);
+  setTimeout(() => {
+    npc.addMessage('bot', response);
+    displayMessage('bot', response);
+  }, 300);
+
+  document.getElementById('npc-input').focus();
+}
+
+function displayMessage(sender, text) {
+  const container = document.getElementById('npc-messages');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `npc-message ${sender}`;
+  msgDiv.innerHTML = `<div class="npc-message-bubble">${escapeHtml(text)}</div>`;
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ─── LEADERBOARD INPUT BINDING ───────────────────────────────
+function bindLeaderboardInput() {
+  const saveBtn = document.getElementById('save-name-btn');
+  const nameInput = document.getElementById('player-name-input');
+  
+  saveBtn.addEventListener('click', () => {
+    const playerName = nameInput.value.trim() || 'Anonymous';
+    if (currentRunScore) {
+      currentRunScore.name = playerName;
+      leaderboard.entries = leaderboard.entries.map(e => 
+        e.id === currentRunScore.id ? currentRunScore : e
+      );
+      leaderboard.saveLeaderboard();
+      renderLeaderboard(currentRunScore);
+      nameInput.value = '';
+    }
+  });
+  
+  nameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') saveBtn.click();
+  });
 }
 
 // ─── PUBLIC API ──────────────────────────────────────────────
 export function initGame({ canvasId, introScenes, onEndingCutscene }) {
-  if (!window._heistGameInstance) {
-    console.error('HeistGame instance not initialized. Make sure to use with GameEngine.');
-    return;
-  }
+  canvas = document.getElementById(canvasId);
+  ctx    = canvas.getContext('2d');
+  canvas.width  = W;
+  canvas.height = H;
+  _introScenes      = introScenes;
+  _onEndingCutscene = onEndingCutscene;
   
-  const heist = window._heistGameInstance;
-  heist._introScenes = introScenes;
-  heist._onEndingCutscene = onEndingCutscene;
-  heist.initialize();
+  // Initialize NPC and Leaderboard
+  npc = initNPCSystem();
+  leaderboard = initLeaderboard();
+  
+  bindCutsceneBtn();
+  bindNPCSystem();
+  bindLeaderboardInput();
+  
+  // Dev skip key (Z) and restart key (R)
+  window.addEventListener('keydown', e => {
+    if ((e.key === 'z' || e.key === 'Z') && running && !dead) {
+      level++; if (level >= LEVELS.length) { showEndScreen(); } else { initLevel(level); }
+    }
+    if ((e.key === 'r' || e.key === 'R') && running) {
+      level = 0; deaths = 0; totalGems = 0; timerActive = false; currentRunScore = null;
+      initLevel(0);
+    }
+  });
 }
 
 export function startGame() {
-  if (!window._heistGameInstance) {
-    console.error('HeistGame instance not initialized.');
-    return;
-  }
-  
-  const heist = window._heistGameInstance;
-  const overlay = document.getElementById('overlay');
-  if (overlay) overlay.classList.add('hidden');
-  
-  heist.showCutscene(heist._introScenes, () => {
-    heist.resetGame();
-    heist.running = true;
+  document.getElementById('overlay').classList.add('hidden');
+  showCutscene(_introScenes, () => {
+    initLevel(0);
+    running = true;
+    loop();
   });
 }

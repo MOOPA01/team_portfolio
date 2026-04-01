@@ -5,6 +5,8 @@ permalink: /gamify/heist
 ---
 
 <link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.css">
 
 <div id="heist-shell">
 
@@ -55,6 +57,24 @@ permalink: /gamify/heist
     </div>
   </div>
 
+  <!-- NPC Chat Modal -->
+  <div id="npc-modal">
+    <div id="npc-chat">
+      <div id="npc-chat-header">
+        <div id="npc-chat-title">SECURE CHANNEL</div>
+        <button id="npc-close-btn">✕</button>
+      </div>
+      <div id="npc-messages"></div>
+      <div id="npc-input-area">
+        <input type="text" id="npc-input" placeholder="Type message...">
+        <button id="npc-send-btn">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NPC Hint -->
+  <div id="npc-hint" style="display: none;">Press E to chat with AI</div>
+
   <div id="end-screen" class="hidden">
     <div id="end-panel">
       <div id="end-title">Mission Complete</div>
@@ -69,7 +89,28 @@ permalink: /gamify/heist
           <div class="end-stat-value" id="end-deaths">0</div>
         </div>
       </div>
-      <button id="end-play-again">[ RUN AGAIN ]</button>
+      
+      <!-- LEADERBOARD SECTION -->
+      <div id="leaderboard-section">
+        <div id="leaderboard-title">TOP TIMES</div>
+        <div id="player-name-input-group">
+          <input type="text" id="player-name-input" placeholder="Enter your name...">
+          <button id="save-name-btn">SAVE</button>
+        </div>
+        <table id="leaderboard-table">
+          <thead>
+            <tr>
+              <th class="rank">Rank</th>
+              <th class="name">Player</th>
+              <th class="time">Time</th>
+              <th class="deaths">Caught</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <button id="end-play-again">[ PLAY AGAIN ]</button>
     </div>
   </div>
 
@@ -93,94 +134,22 @@ permalink: /gamify/heist
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
-  import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
-  
-  // Now import HeistLevel after levels are registered
-  import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
+  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.js';
 
-  // Initialize GameEngine with Heist
-  const environment = {
-    path: '{{site.baseurl}}',
-    gameContainer: document.getElementById('wrapper'),
-    gameCanvas: document.getElementById('c'),
-    gameLevelClasses: [HeistLevel],
-    disablePauseMenu: true,
-    disableContainerAdjustment: true,
-    pythonURI: window._pythonURI,
-    fetchOptions: window._fetchOptions,
-  };
+  initGame({
+    canvasId:         'c',
+    introScenes:      INTRO_SCENES,
+    onEndingCutscene: showEndingCutscene,
+  });
 
-  // Create GameCore instance - this initializes everything
-  const gameCore = new GameCore(environment, GameControl);
-  console.log('[HEIST] GameCore created:', gameCore);
-  console.log('[HEIST] Current level:', gameCore.gameControl?.currentLevel);
-  console.log('[HEIST] Game instance:', window._heistGameInstance);
-  
-  // Function to safely handle start button
-  function handleStartButton() {
-    console.log('[HEIST] Start button clicked');
-    const heist = window._heistGameInstance;
-    console.log('[HEIST] heist instance:', heist);
-    if (!heist) {
-      console.error('[HEIST] Game not initialized yet');
-      return false;
-    }
-    console.log('[HEIST] Hiding overlay and showing cutscene');
-    document.getElementById('overlay').classList.add('hidden');
-    heist.showCutscene(INTRO_SCENES, () => {
-      console.log('[HEIST] Cutscene complete, starting game');
-      heist.resetGame();
-      heist.running = true;
-    });
-    return true;
-  }
-  
-  // Setup button handlers with retry logic
-  let startBtnRetries = 0;
-  const setupButtonHandlers = () => {
-    const heist = window._heistGameInstance;
-    const startBtn = document.getElementById('start-btn');
-    const endPlayAgainBtn = document.getElementById('end-play-again');
-    
-    console.log(`[HEIST] setupButtonHandlers attempt ${startBtnRetries}:`, { heist: !!heist, startBtn: !!startBtn, endPlayAgainBtn: !!endPlayAgainBtn });
-    
-    if (!heist || !startBtn || !endPlayAgainBtn) {
-      startBtnRetries++;
-      if (startBtnRetries < 50) { // Retry for up to 5 seconds
-        setTimeout(setupButtonHandlers, 100);
-      } else {
-        console.error('[HEIST] Failed to setup button handlers after 50 retries');
-      }
-      return;
-    }
-    
-    console.log('[HEIST] Setting up button handlers now...');
-    
-    // Configure heist instance
-    heist._introScenes = INTRO_SCENES;
-    heist._onEndingCutscene = showEndingCutscene;
-    
-    // Remove any previous listeners
-    startBtn.replaceWith(startBtn.cloneNode(true));
-    document.getElementById('end-play-again').replaceWith(endPlayAgainBtn.cloneNode(true));
-    
-    // Attach fresh listeners
-    document.getElementById('start-btn').addEventListener('click', handleStartButton);
-    document.getElementById('end-play-again').addEventListener('click', () => {
-      const h = window._heistGameInstance;
-      if (h) {
-        document.getElementById('end-screen').classList.add('hidden');
-        document.getElementById('canvas-wrap').style.display = '';
-        h.resetGame();
-        h.running = true;
-      }
-    });
-    
-    console.log('[HEIST] Button handlers attached successfully');
-  };
-  
-  // Start setup after a brief delay to allow GameCore initialization
-  setTimeout(setupButtonHandlers, 200);
+  document.getElementById('start-btn').addEventListener('click', startGame);
+
+  document.getElementById('end-play-again').addEventListener('click', () => {
+    document.getElementById('end-screen').classList.add('hidden');
+    startGame();
+  });
 
   window.voidToggleFullscreen = function () {
     if (!document.fullscreenElement) {
