@@ -83,24 +83,88 @@ permalink: /gamify/heist
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  import { initGame, startGame }  from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
-  import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
+  import GameCore from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
+  import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
+  import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
+  import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
+  
+  // Import all level data to register them
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
-  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/heist/heist-level-4.js';
+  import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
 
-  initGame({
-    canvasId:         'c',
-    introScenes:      INTRO_SCENES,
-    onEndingCutscene: showEndingCutscene,
-  });
+  // Initialize GameEngine with Heist
+  const environment = {
+    path: '{{site.baseurl}}',
+    gameContainer: document.getElementById('wrapper'),
+    gameCanvas: document.getElementById('c'),
+    gameLevelClasses: [HeistLevel],
+    disablePauseMenu: true,
+    disableContainerAdjustment: true,
+    pythonURI: window._pythonURI,
+    fetchOptions: window._fetchOptions,
+  };
 
-  document.getElementById('start-btn').addEventListener('click', startGame);
-
-  document.getElementById('end-play-again').addEventListener('click', () => {
-    document.getElementById('end-screen').classList.add('hidden');
-    startGame();
-  });
+  // Create GameCore instance
+  const gameCore = new GameCore(environment, GameControl);
+  
+  // Function to safely handle start button
+  function handleStartButton() {
+    const heist = window._heistGameInstance;
+    if (!heist) {
+      console.error('Game not initialized yet');
+      return false;
+    }
+    document.getElementById('overlay').classList.add('hidden');
+    heist.showCutscene(INTRO_SCENES, () => {
+      heist.resetGame();
+      heist.running = true;
+    });
+    return true;
+  }
+  
+  // Setup button handlers with retry logic
+  let startBtnRetries = 0;
+  const setupButtonHandlers = () => {
+    const heist = window._heistGameInstance;
+    const startBtn = document.getElementById('start-btn');
+    const endPlayAgainBtn = document.getElementById('end-play-again');
+    
+    if (!heist || !startBtn || !endPlayAgainBtn) {
+      startBtnRetries++;
+      if (startBtnRetries < 50) { // Retry for up to 5 seconds
+        setTimeout(setupButtonHandlers, 100);
+      } else {
+        console.error('Failed to setup button handlers - game not initialized');
+      }
+      return;
+    }
+    
+    // Configure heist instance
+    heist._introScenes = INTRO_SCENES;
+    heist._onEndingCutscene = showEndingCutscene;
+    
+    // Remove any previous listeners
+    startBtn.replaceWith(startBtn.cloneNode(true));
+    document.getElementById('end-play-again').replaceWith(endPlayAgainBtn.cloneNode(true));
+    
+    // Attach fresh listeners
+    document.getElementById('start-btn').addEventListener('click', handleStartButton);
+    document.getElementById('end-play-again').addEventListener('click', () => {
+      const h = window._heistGameInstance;
+      if (h) {
+        document.getElementById('end-screen').classList.add('hidden');
+        document.getElementById('canvas-wrap').style.display = '';
+        h.resetGame();
+        h.running = true;
+      }
+    });
+    
+    console.log('Game initialized and ready to play!');
+  };
+  
+  // Start setup after a brief delay to allow GameCore initialization
+  setTimeout(setupButtonHandlers, 200);
 
   window.voidToggleFullscreen = function () {
     if (!document.fullscreenElement) {
