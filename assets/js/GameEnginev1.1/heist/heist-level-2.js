@@ -25,9 +25,9 @@ registerLevel({
     { x: 11, y: 7,  color: '#ff00cc' },
   ],
   guards: [
-    { x: 4*CELL+CELL/2,  y: 3*CELL+CELL/2,  vx: 4.8,  vy: 0   },
-    { x: 17*CELL+CELL/2, y: 3*CELL+CELL/2,  vx:-4.8,  vy: 0   },
-    { x: 4*CELL+CELL/2,  y:13*CELL+CELL/2,  vx: 0,    vy:-4.8 },
-    { x: 17*CELL+CELL/2, y:13*CELL+CELL/2,  vx: 0,    vy: 4.8 },
+    { x: 4*CELL+CELL/2,  y: 3*CELL+CELL/2,  vx: 4.9,  vy: 0   },
+    { x: 17*CELL+CELL/2, y: 3*CELL+CELL/2,  vx:-4.9,  vy: 0   },
+    { x: 4*CELL+CELL/2,  y:13*CELL+CELL/2,  vx: 0,    vy:-4.9 },
+    { x: 17*CELL+CELL/2, y:13*CELL+CELL/2,  vx: 0,    vy: 4.9 },
   ]
 });
