@@ -87,13 +87,15 @@ permalink: /gamify/heist
 <script type="module">
   import GameCore from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
-  import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
-  import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   
-  // Import all level data to register them
+  // Import all level data FIRST to register them before HeistLevel is created
+  import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
   import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
+  
+  // Now import HeistLevel after all levels are registered
+  import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
 
   // Initialize GameEngine with Heist
   const environment = {
