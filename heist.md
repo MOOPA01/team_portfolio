@@ -5,6 +5,8 @@ permalink: /gamify/heist
 ---
 
 <link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.css">
 
 <div id="heist-shell">
 
@@ -55,6 +57,24 @@ permalink: /gamify/heist
     </div>
   </div>
 
+  <!-- NPC Chat Modal -->
+  <div id="npc-modal">
+    <div id="npc-chat">
+      <div id="npc-chat-header">
+        <div id="npc-chat-title">SECURE CHANNEL</div>
+        <button id="npc-close-btn">✕</button>
+      </div>
+      <div id="npc-messages"></div>
+      <div id="npc-input-area">
+        <input type="text" id="npc-input" placeholder="Type message...">
+        <button id="npc-send-btn">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NPC Hint -->
+  <div id="npc-hint" style="display: none;">Press E to chat with AI</div>
+
   <div id="end-screen" class="hidden">
     <div id="end-panel">
       <div id="end-title">Mission Complete</div>
@@ -69,6 +89,27 @@ permalink: /gamify/heist
           <div class="end-stat-value" id="end-deaths">0</div>
         </div>
       </div>
+      
+      <!-- LEADERBOARD SECTION -->
+      <div id="leaderboard-section">
+        <div id="leaderboard-title">TOP TIMES</div>
+        <div id="player-name-input-group">
+          <input type="text" id="player-name-input" placeholder="Enter your name...">
+          <button id="save-name-btn">SAVE</button>
+        </div>
+        <table id="leaderboard-table">
+          <thead>
+            <tr>
+              <th class="rank">Rank</th>
+              <th class="name">Player</th>
+              <th class="time">Time</th>
+              <th class="deaths">Caught</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
       <button id="end-play-again">[ PLAY AGAIN ]</button>
     </div>
   </div>
@@ -81,6 +122,8 @@ permalink: /gamify/heist
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
   import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.js';
 
   initGame({
     canvasId:         'c',

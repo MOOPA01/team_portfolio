@@ -3,6 +3,9 @@
 //  Ghost Protocol: Infiltration Engine
 // =============================================================
 
+import { initNPCSystem } from './heist-npc.js';
+import { initLeaderboard } from './heist-leaderboard.js';
+
 // ─── GRID CONSTANTS (exported for use in level files) ────────
 export const CELL = 32;
 export const COLS = 22;
@@ -43,6 +46,10 @@ let running = false, particles = [], t = 0;
 let runStartTime = 0, timerActive = false;
 let csQueue = [], csIndex = 0, csOnComplete = null;
 let _onEndingCutscene = null, _introScenes = null;
+let npc = null;
+let leaderboard = null;
+let currentRunScore = null;
+let npcEntity = null; // NPC position on level 1
 
 // ─── PRIVATE WALL HELPERS ────────────────────────────────────
 function buildWallSet(walls) {
@@ -93,7 +100,7 @@ class Gem {
     this.collectCooldownUntil = performance.now() + 200;
     this.collectCount        += 1;
     totalGems++;
-    spawnParticles(this.x, this.y, this.color, 14);
+    // REMOVED: spawnParticles(this.x, this.y, this.color, 14);
     updateHUD(); return true;
   }
   // From Coin.js checkPlayerCollision(): cooldown + radius distance check
@@ -124,55 +131,52 @@ class PlayerController {
   }
   handleKeyDown(e) {
     this.pressedKeys[e.key] = true;
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-    this.updateVelocity();
   }
   handleKeyUp(e) {
-    if (e.key in this.pressedKeys) delete this.pressedKeys[e.key];
-    this.updateVelocity();
+    this.pressedKeys[e.key] = false;
   }
   updateVelocity() {
-    this.velocity.x = 0; this.velocity.y = 0; this.moved = false;
-    const k = this.keypress, p = this.pressedKeys;
-    const goRight = p[k.right] || p[k.rightAlt] || p[k.rightAlt2];
-    const goLeft  = p[k.left]  || p[k.leftAlt]  || p[k.leftAlt2];
-    const goUp    = p[k.up]    || p[k.upAlt]    || p[k.upAlt2];
-    const goDown  = p[k.down]  || p[k.downAlt]  || p[k.downAlt2];
-    if (goRight || goLeft) { this.moved = true; this.velocity.x = goRight ? this.xVelocity : -this.xVelocity; }
-    if (goUp    || goDown) { this.moved = true; this.velocity.y = goDown  ? this.yVelocity : -this.yVelocity; }
-    if (this.velocity.x !== 0 && this.velocity.y !== 0) { this.velocity.x *= 0.707; this.velocity.y *= 0.707; }
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    const keys = this.pressedKeys;
+    const up = keys['ArrowUp'] || keys['w'] || keys['W'];
+    const dn = keys['ArrowDown'] || keys['s'] || keys['S'];
+    const lt = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const rt = keys['ArrowRight'] || keys['d'] || keys['D'];
+    if (up) this.velocity.y -= this.yVelocity;
+    if (dn) this.velocity.y += this.yVelocity;
+    if (lt) this.velocity.x -= this.xVelocity;
+    if (rt) this.velocity.x += this.xVelocity;
+    // Diagonal speed normalization
+    if (this.velocity.x !== 0 && this.velocity.y !== 0) {
+      this.velocity.x *= 0.707;
+      this.velocity.y *= 0.707;
+    }
   }
   move() {
-    if (dead || levelWon) return;
-    const r = this.r - 1, dx = this.velocity.x, dy = this.velocity.y;
-    const nx = this.x + dx;
-    if (!isWall(nx-r,this.y) && !isWall(nx+r,this.y) &&
-        !isWall(nx-r,this.y-r) && !isWall(nx+r,this.y-r) &&
-        !isWall(nx-r,this.y+r) && !isWall(nx+r,this.y+r)) this.x = nx;
-    else this.velocity.x = 0;
-    const ny = this.y + dy;
-    if (!isWall(this.x,ny-r) && !isWall(this.x,ny+r) &&
-        !isWall(this.x-r,ny-r) && !isWall(this.x+r,ny-r) &&
-        !isWall(this.x-r,ny) && !isWall(this.x+r,ny)) this.y = ny;
-    else this.velocity.y = 0;
+    const nextX = this.x + this.velocity.x;
+    const nextY = this.y + this.velocity.y;
+    if (!isWall(nextX, nextY)) this.x = nextX;
+    if (!isWall(this.x, nextY)) this.y = nextY;
   }
   draw() {
-    if (dead) return;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2);
     ctx.fillStyle = '#00e87a';
     ctx.fill();
-    ctx.fillStyle = '#001a0a';
-    ctx.beginPath();
-    ctx.arc(this.x - 3, this.y - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(this.x + 3, this.y - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.strokeStyle = '#00b860';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Eyes
+    ctx.fillStyle = '#0a0e1a';
+    ctx.beginPath(); ctx.arc(-3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
   destroy() {
     window.removeEventListener('keydown', this._boundKeyDown);
-    window.removeEventListener('keyup',   this._boundKeyUp);
+    window.removeEventListener('keyup', this._boundKeyUp);
   }
 }
 
@@ -201,6 +205,26 @@ function initLevel(idx) {
   if (idx === 0 && !timerActive) { runStartTime = Date.now(); timerActive = true; }
   document.getElementById('h-level').textContent = idx + 1;
   document.getElementById('h-total').textContent = gems.length;
+  
+  // Initialize NPC entity on level 1 at a specific position
+  if (idx === 0) {
+    npcEntity = {
+      x: 10.5 * CELL,  // Place NPC at grid position (10, 10)
+      y: 10.5 * CELL,
+      r: 8,
+      color: '#ffdd00'
+    };
+    const hintEl = document.getElementById('npc-hint');
+    if (hintEl) hintEl.classList.add('active');
+  } else {
+    npcEntity = null;
+    const hintEl = document.getElementById('npc-hint');
+    if (hintEl) hintEl.classList.remove('active');
+  }
+  
+  // Reset NPC chat history
+  if (npc) npc.reset();
+  
   updateHUD();
 }
 
@@ -234,59 +258,113 @@ export function showEndScreen() {
   document.getElementById('end-deaths').textContent = String(deaths);
   document.getElementById('canvas-wrap').style.display = 'none';
   document.getElementById('end-screen').classList.remove('hidden');
+  
+  // Save score and display leaderboard
+  currentRunScore = leaderboard.addScore('temp_player', totalMs, deaths);
+  renderLeaderboard(currentRunScore);
+  
   document.getElementById('end-play-again').onclick = () => {
     document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('canvas-wrap').style.display = '';
     level = 0; deaths = 0; totalGems = 0; timerActive = false;
+    currentRunScore = null;
     initLevel(0); running = true; loop();
   };
 }
 
-// ─── PARTICLES ───────────────────────────────────────────────
-function spawnParticles(x, y, color, count=18) {
-  for (let i=0; i<count; i++) {
-    const angle = (Math.PI*2/count)*i + Math.random()*0.4;
-    const speed = 1.5 + Math.random()*4;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
-      life: 1, color, r: 1.5 + Math.random()*3
-    });
+// ─── LEADERBOARD RENDERING ───────────────────────────────────
+function renderLeaderboard(currentScore) {
+  const topScores = leaderboard.getTop5();
+  const tableBody = document.querySelector('#leaderboard-table tbody');
+  
+  tableBody.innerHTML = '';
+  
+  if (topScores.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = '<td colspan="4" id="leaderboard-empty">No scores yet. Be the first!</td>';
+    tableBody.appendChild(emptyRow);
+    return;
   }
+  
+  topScores.forEach((score, idx) => {
+    const row = document.createElement('tr');
+    if (currentScore && score.id === currentScore.id) {
+      row.classList.add('current-player');
+    }
+    
+    row.innerHTML = `
+      <td class="rank">#${idx + 1}</td>
+      <td class="name">${escapeHtml(score.name)}</td>
+      <td class="time">${formatTime(score.time)}</td>
+      <td class="deaths">${score.deaths}</td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+// ─── PARTICLES (DISABLED - no visuals) ───────────────────────
+function spawnParticles(x, y, color, count=18) {
+  // Particles disabled - no visual effect
+  return;
 }
 
 // ─── GUARDS (enemies) ────────────────────────────────────────
 function moveGuards() {
   if (levelWon) return;
-  const L = LEVELS[level];
-  guards.forEach((g, i) => {
-    const orig = L.guards[i], r = g.r;
-    if (orig.patrol) {
-      // Patrol between two points
-      const { ax, ay, bx, by } = orig.patrol;
-      const dx = bx - ax, dy = by - ay;
-      const len = Math.sqrt(dx*dx + dy*dy);
-      g._t = (g._t || 0) + (g._dir || 1) * (orig.speed || 2.5) / len;
-      if (g._t >= 1) { g._t = 1; g._dir = -1; }
-      if (g._t <= 0) { g._t = 0; g._dir =  1; }
-      g.x = ax + dx * g._t;
-      g.y = ay + dy * g._t;
-    } else if (orig.bounce) {
-      g.x += g.vx; g.y += g.vy;
-      if (isWall(g.x-r,g.y)||isWall(g.x+r,g.y)) { g.vx*=-1; g.x+=g.vx*2; }
-      if (isWall(g.x,g.y-r)||isWall(g.x,g.y+r)) { g.vy*=-1; g.y+=g.vy*2; }
-    } else if (orig.vx !== 0) {
-      g.x += g.vx;
-      if (isWall(g.x-r,g.y)||isWall(g.x+r,g.y)||isWall(g.x-r,g.y-r)||isWall(g.x+r,g.y-r)) {
-        g.vx *= -1; g.x += g.vx*2;
+  
+  guards.forEach((g) => {
+    // If guard has vx/vy, move it (works for all existing levels)
+    if (g.vx !== undefined || g.vy !== undefined) {
+      if (g.vx === undefined) g.vx = 0;
+      if (g.vy === undefined) g.vy = 0;
+      
+      // Try moving in X direction
+      const nextX = g.x + g.vx;
+      const nextY = g.y + g.vy;
+      
+      // Check if new position would collide with walls
+      const canMoveX = !checkGuardWallCollision(nextX, g.y, g.r);
+      const canMoveY = !checkGuardWallCollision(g.x, nextY, g.r);
+      
+      // Move in X if no collision
+      if (canMoveX) {
+        g.x = nextX;
+      } else if (g.vx !== 0) {
+        g.vx *= -1; // Bounce off wall in X
       }
-    } else {
-      g.y += g.vy;
-      if (isWall(g.x,g.y-r)||isWall(g.x,g.y+r)||isWall(g.x-r,g.y-r)||isWall(g.x+r,g.y-r)) {
-        g.vy *= -1; g.y += g.vy*2;
+      
+      // Move in Y if no collision
+      if (canMoveY) {
+        g.y = nextY;
+      } else if (g.vy !== 0) {
+        g.vy *= -1; // Bounce off wall in Y
       }
+      
+      // Keep in bounds
+      g.x = Math.max(g.r, Math.min(W - g.r, g.x));
+      g.y = Math.max(g.r, Math.min(H - g.r, g.y));
     }
   });
+}
+
+// Check if a guard position collides with walls
+function checkGuardWallCollision(gx, gy, gr) {
+  // Check all wall cells in the area
+  for (let x = Math.floor((gx - gr) / CELL); x <= Math.floor((gx + gr) / CELL); x++) {
+    for (let y = Math.floor((gy - gr) / CELL); y <= Math.floor((gy + gr) / CELL); y++) {
+      if (wallSet.has(`${x},${y}`)) {
+        // Circle-rectangle collision
+        const closestX = Math.max(x * CELL, Math.min(gx, (x + 1) * CELL));
+        const closestY = Math.max(y * CELL, Math.min(gy, (y + 1) * CELL));
+        const dx = gx - closestX;
+        const dy = gy - closestY;
+        if (dx * dx + dy * dy < gr * gr) {
+          return true; // Collision detected
+        }
+      }
+    }
+  }
+  return false;
 }
 
 // ─── COLLISION ───────────────────────────────────────────────
@@ -294,7 +372,9 @@ function checkCollisions() {
   if (dead || levelWon) return;
   for (const g of guards) {
     const dx = player.x - g.x, dy = player.y - g.y;
-    if (Math.sqrt(dx*dx + dy*dy) < player.r + g.r - 2) { die(); return; }
+    if (Math.sqrt(dx*dx + dy*dy) < player.r + g.r) {
+      die(); return;
+    }
   }
   for (const gem of gems) {
     if (gem.checkPlayerCollision(player.x, player.y, player.r)) gem.collect();
@@ -309,13 +389,24 @@ function checkCollisions() {
 function die() {
   if (dead) return;
   dead = true; deaths++; deathTimer = 70;
-  spawnParticles(player.x, player.y, '#ff3355', 28); updateHUD();
+  // REMOVED: spawnParticles(player.x, player.y, '#ff3355', 28);
+  updateHUD();
 }
 
 function winLevel() {
   levelWon = true; winFlash = 70;
-  spawnParticles(player.x, player.y, '#00e87a', 32);
-  spawnParticles(goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2, '#00fff9', 20);
+  // REMOVED: spawnParticles(player.x, player.y, '#00e87a', 32);
+  // REMOVED: spawnParticles(goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2, '#00fff9', 20);
+  setTimeout(() => {
+    level++;
+    if (level >= LEVELS.length) {
+      showEndScreen();
+    } else {
+      initLevel(level);
+      running = true;
+      loop();
+    }
+  }, 2000);
 }
 
 // ─── DRAW ────────────────────────────────────────────────────
@@ -323,10 +414,14 @@ function drawFloorGrid() {
   ctx.strokeStyle = 'rgba(30,60,100,0.2)';
   ctx.lineWidth = 0.5;
   for (let x = 0; x <= W; x += CELL) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.stroke();
   }
   for (let y = 0; y <= H; y += CELL) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.stroke();
   }
 }
 
@@ -338,6 +433,23 @@ function drawGuard(g) {
   ctx.strokeStyle = '#881133';
   ctx.lineWidth = 1.5;
   ctx.stroke();
+}
+
+function drawNPCEntity() {
+  if (!npcEntity) return;
+  ctx.beginPath();
+  ctx.arc(npcEntity.x, npcEntity.y, npcEntity.r, 0, Math.PI * 2);
+  ctx.fillStyle = npcEntity.color;
+  ctx.fill();
+  ctx.strokeStyle = '#ccaa00';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Draw a small icon/indicator
+  ctx.font = 'bold 12px Arial';
+  ctx.fillStyle = '#0a0e1a';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', npcEntity.x, npcEntity.y);
 }
 
 function draw() {
@@ -354,26 +466,18 @@ function draw() {
   ctx.lineWidth = 1.5;
   ctx.strokeRect(goalRect.x+0.5, goalRect.y+0.5, goalRect.w-1, goalRect.h-1);
   if (allCollected) {
-    ctx.fillStyle = '#00e87a';
-    ctx.font = 'bold 10px Share Tech Mono';
-    ctx.textAlign = 'center';
-    ctx.fillText('EXTRACT', goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2 + 4);
-    ctx.textAlign = 'left';
+    ctx.font = 'bold 16px Orbitron, monospace'; ctx.fillStyle = '#00e87a';
+    ctx.textAlign = 'center'; ctx.fillText('EXTRACT', goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2 + 6);
   }
 
   // Walls
   wallBarriers.forEach(b => {
-    if (!b.visible) return;
-    ctx.fillStyle = b.color;
-    ctx.fillRect(b.x, b.y, b.width, b.height);
-    // Wall detail lines
-    ctx.strokeStyle = b.stroke;
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(b.x+0.5, b.y+0.5, b.width-1, b.height-1);
-    // Inner cross-hatch on wall
-    ctx.strokeStyle = 'rgba(60,90,150,0.15)';
-    ctx.beginPath(); ctx.moveTo(b.x+2, b.y+2); ctx.lineTo(b.x+b.width-2, b.y+b.height-2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(b.x+b.width-2, b.y+2); ctx.lineTo(b.x+2, b.y+b.height-2); ctx.stroke();
+    ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.strokeStyle = b.stroke; ctx.lineWidth = 1; ctx.strokeRect(b.x, b.y, b.width, b.height);
+    ctx.strokeStyle = b.stroke; ctx.lineWidth = 0.5;
+    for (let i = 0; i < b.width; i += 4) {
+      ctx.beginPath(); ctx.moveTo(b.x + i, b.y); ctx.lineTo(b.x + i + 2, b.y + b.height); ctx.stroke();
+    }
   });
 
   // Gems
@@ -382,39 +486,39 @@ function draw() {
   // Guards
   guards.forEach(g => drawGuard(g));
 
+  // NPC Entity
+  drawNPCEntity();
+
   // Player
   player.draw();
 
-  // Particles
+  // Particles (now disabled)
   particles = particles.filter(p => p.life > 0);
   particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
     p.x += p.vx; p.y += p.vy;
-    p.vx *= 0.91; p.vy *= 0.91; p.life -= 0.022;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(0.1, p.r * p.life), 0, Math.PI * 2);
-    ctx.globalAlpha = Math.max(0, p.life);
-    ctx.fillStyle   = p.color;
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    p.life--; p.size *= 0.98;
   });
 
   // Win flash
   if (levelWon && winFlash > 0) {
-    ctx.fillStyle = `rgba(0,232,122,${winFlash/70 * 0.28})`;
+    const alpha = (winFlash / 70) * 0.3;
+    ctx.fillStyle = `rgba(0, 232, 122, ${alpha})`;
     ctx.fillRect(0, 0, W, H);
     winFlash--;
-    if (winFlash === 0) {
-      if (level < LEVELS.length - 1) { level++; initLevel(level); }
-      else if (_onEndingCutscene)     _onEndingCutscene();
-    }
   }
 
   // Death flash
   if (dead && deathTimer > 0) {
-    ctx.fillStyle = `rgba(255,30,60,${deathTimer/70 * 0.35})`;
+    const alpha = (deathTimer / 70) * 0.3;
+    ctx.fillStyle = `rgba(255, 51, 85, ${alpha})`;
     ctx.fillRect(0, 0, W, H);
     deathTimer--;
-    if (deathTimer === 0) initLevel(level);
+    if (deathTimer === 0) {
+      initLevel(level);
+      dead = false;
+    }
   }
 
   drawTimer();
@@ -449,18 +553,114 @@ function bindCutsceneBtn() {
   document.getElementById('cs-btn').addEventListener('click', () => {
     csIndex++;
     if (csIndex < csQueue.length) {
-      const el = document.getElementById('cs-content');
-      el.style.opacity = '0.3';
-      setTimeout(() => { el.style.opacity = '1'; renderCutsceneSlide(); }, 300);
+      renderCutsceneSlide();
     } else {
-      const el = document.getElementById('cutscene');
-      el.classList.add('fade-out');
+      document.getElementById('cutscene').classList.add('fade-out');
       setTimeout(() => {
-        el.classList.add('hidden');
-        el.classList.remove('fade-out');
+        document.getElementById('cutscene').classList.add('hidden');
         if (csOnComplete) csOnComplete();
       }, 600);
     }
+  });
+}
+
+// ─── NPC SYSTEM BINDING ──────────────────────────────────────
+function bindNPCSystem() {
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'e' || e.key === 'E') && running && level === 0) {
+      // Check if player is near NPC entity
+      if (npcEntity) {
+        const dx = player.x - npcEntity.x;
+        const dy = player.y - npcEntity.y;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance < 50) { // Interaction radius
+          toggleNPCChat();
+        }
+      }
+    }
+  });
+
+  document.getElementById('npc-send-btn').addEventListener('click', sendNPCMessage);
+  document.getElementById('npc-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendNPCMessage();
+  });
+
+  document.getElementById('npc-close-btn').addEventListener('click', closeNPCChat);
+}
+
+function toggleNPCChat() {
+  const modal = document.getElementById('npc-modal');
+  modal.classList.toggle('active');
+  if (modal.classList.contains('active')) {
+    document.getElementById('npc-input').focus();
+    running = false; // Pause game
+  } else {
+    running = true; // Resume game
+    loop();
+  }
+}
+
+function closeNPCChat() {
+  document.getElementById('npc-modal').classList.remove('active');
+  running = true;
+  loop();
+}
+
+function sendNPCMessage() {
+  const input = document.getElementById('npc-input');
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  // Add user message
+  npc.addMessage('user', userText);
+  displayMessage('user', userText);
+  input.value = '';
+
+  // Generate and display bot response
+  const response = npc.generateResponse(userText);
+  setTimeout(() => {
+    npc.addMessage('bot', response);
+    displayMessage('bot', response);
+  }, 300);
+
+  document.getElementById('npc-input').focus();
+}
+
+function displayMessage(sender, text) {
+  const container = document.getElementById('npc-messages');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `npc-message ${sender}`;
+  msgDiv.innerHTML = `<div class="npc-message-bubble">${escapeHtml(text)}</div>`;
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ─── LEADERBOARD INPUT BINDING ───────────────────────────────
+function bindLeaderboardInput() {
+  const saveBtn = document.getElementById('save-name-btn');
+  const nameInput = document.getElementById('player-name-input');
+  
+  saveBtn.addEventListener('click', () => {
+    const playerName = nameInput.value.trim() || 'Anonymous';
+    if (currentRunScore) {
+      currentRunScore.name = playerName;
+      leaderboard.entries = leaderboard.entries.map(e => 
+        e.id === currentRunScore.id ? currentRunScore : e
+      );
+      leaderboard.saveLeaderboard();
+      renderLeaderboard(currentRunScore);
+      nameInput.value = '';
+    }
+  });
+  
+  nameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') saveBtn.click();
   });
 }
 
@@ -473,15 +673,23 @@ export function initGame({ canvasId, introScenes, onEndingCutscene }) {
   canvas.height = H;
   _introScenes      = introScenes;
   _onEndingCutscene = onEndingCutscene;
+  
+  // Initialize NPC and Leaderboard
+  npc = initNPCSystem();
+  leaderboard = initLeaderboard();
+  
   bindCutsceneBtn();
+  bindNPCSystem();
+  bindLeaderboardInput();
+  
   // Dev skip key (Z) and restart key (R)
   window.addEventListener('keydown', e => {
     if ((e.key === 'z' || e.key === 'Z') && running && !dead) {
-      if (level < LEVELS.length - 1) { level++; initLevel(level); }
-      else if (_onEndingCutscene) _onEndingCutscene();
+      level++; if (level >= LEVELS.length) { showEndScreen(); } else { initLevel(level); }
     }
     if ((e.key === 'r' || e.key === 'R') && running) {
-      level = 0; deaths = 0; totalGems = 0; timerActive = false; initLevel(0);
+      level = 0; deaths = 0; totalGems = 0; timerActive = false; currentRunScore = null;
+      initLevel(0);
     }
   });
 }
@@ -489,7 +697,8 @@ export function initGame({ canvasId, introScenes, onEndingCutscene }) {
 export function startGame() {
   document.getElementById('overlay').classList.add('hidden');
   showCutscene(_introScenes, () => {
-    level = 0; deaths = 0; totalGems = 0; timerActive = false;
-    initLevel(0); running = true; loop();
+    initLevel(0);
+    running = true;
+    loop();
   });
 }
