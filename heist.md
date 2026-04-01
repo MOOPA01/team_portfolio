@@ -85,8 +85,15 @@ permalink: /gamify/heist
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  import { GameCore } from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
+  import GameEngine from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
+  
+  // Get GameCore from the default export
+  const GameCore = GameEngine.constructor?.GameCore || window.GameCore;
+  
+  if (!GameCore) {
+    console.error('[HEIST] Failed to load GameCore');
+  }
   
   // Import level files FIRST to populate LEVELS array before HeistLevel is used
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
@@ -117,13 +124,17 @@ permalink: /gamify/heist
   
   // Function to safely handle start button
   function handleStartButton() {
+    console.log('[HEIST] Start button clicked');
     const heist = window._heistGameInstance;
+    console.log('[HEIST] heist instance:', heist);
     if (!heist) {
-      console.error('Game not initialized yet');
+      console.error('[HEIST] Game not initialized yet');
       return false;
     }
+    console.log('[HEIST] Hiding overlay and showing cutscene');
     document.getElementById('overlay').classList.add('hidden');
     heist.showCutscene(INTRO_SCENES, () => {
+      console.log('[HEIST] Cutscene complete, starting game');
       heist.resetGame();
       heist.running = true;
     });

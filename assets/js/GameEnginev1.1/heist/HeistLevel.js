@@ -13,6 +13,10 @@ class HeistLevel {
   constructor(gameEnv) {
     this.gameEnv = gameEnv;
     this.heistGame = null;
+    
+    // GameEngine expects these properties
+    this.gameObjectClasses = [];
+    this.gameObjects = [];
   }
 
   /**
