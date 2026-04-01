@@ -85,7 +85,7 @@ permalink: /gamify/heist
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  import GameCore from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
+  import { GameCore } from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
   
   // Import level files FIRST to populate LEVELS array before HeistLevel is used
@@ -111,6 +111,9 @@ permalink: /gamify/heist
 
   // Create GameCore instance - this initializes everything
   const gameCore = new GameCore(environment, GameControl);
+  console.log('[HEIST] GameCore created:', gameCore);
+  console.log('[HEIST] Current level:', gameCore.gameControl?.currentLevel);
+  console.log('[HEIST] Game instance:', window._heistGameInstance);
   
   // Function to safely handle start button
   function handleStartButton() {
@@ -134,15 +137,19 @@ permalink: /gamify/heist
     const startBtn = document.getElementById('start-btn');
     const endPlayAgainBtn = document.getElementById('end-play-again');
     
+    console.log(`[HEIST] setupButtonHandlers attempt ${startBtnRetries}:`, { heist: !!heist, startBtn: !!startBtn, endPlayAgainBtn: !!endPlayAgainBtn });
+    
     if (!heist || !startBtn || !endPlayAgainBtn) {
       startBtnRetries++;
       if (startBtnRetries < 50) { // Retry for up to 5 seconds
         setTimeout(setupButtonHandlers, 100);
       } else {
-        console.error('Failed to setup button handlers - game not initialized');
+        console.error('[HEIST] Failed to setup button handlers after 50 retries');
       }
       return;
     }
+    
+    console.log('[HEIST] Setting up button handlers now...');
     
     // Configure heist instance
     heist._introScenes = INTRO_SCENES;
@@ -164,7 +171,7 @@ permalink: /gamify/heist
       }
     });
     
-    console.log('Game initialized and ready to play!');
+    console.log('[HEIST] Button handlers attached successfully');
   };
   
   // Start setup after a brief delay to allow GameCore initialization
