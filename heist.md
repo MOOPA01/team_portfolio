@@ -75,11 +75,13 @@ permalink: /gamify/heist
 
 </div>
 
-<script>window._siteBaseUrl = '{{site.baseurl}}';</script>
 <script type="module">
-  // Expose config globals for non-module NPC code in combined builds
-  import { pythonURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
+  // Set globals needed by level files before any imports run
+  window._siteBaseUrl = '{{site.baseurl}}';
+
+  import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
   window._pythonURI    = pythonURI;
+  window._javaURI      = javaURI;
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
