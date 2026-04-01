@@ -34,7 +34,7 @@ permalink: /gamify/heist
   <div id="overlay">
     <div id="overlay-title" class="green">H.E.I.S.T.EXE</div>
     <div id="overlay-sub">
-      Ghost Protocol Active<br>
+      Ghost Protocol Activated<br>
       Collect all gems. Reach the extraction point.<br>
       Avoid the guards.
     </div>
