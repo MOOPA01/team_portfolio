@@ -85,15 +85,9 @@ permalink: /gamify/heist
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  import GameEngine from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
+  // Import GameEngine modules
+  import { GameCore } from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
-  
-  // Get GameCore from the default export
-  const GameCore = GameEngine.constructor?.GameCore || window.GameCore;
-  
-  if (!GameCore) {
-    console.error('[HEIST] Failed to load GameCore');
-  }
   
   // Import level files FIRST to populate LEVELS array before HeistLevel is used
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
