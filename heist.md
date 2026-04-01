@@ -88,13 +88,13 @@ permalink: /gamify/heist
   import GameCore from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
   
-  // Import all level data FIRST to register them before HeistLevel is created
+  // Import level files FIRST to populate LEVELS array before HeistLevel is used
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
   import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
   
-  // Now import HeistLevel after all levels are registered
+  // Now import HeistLevel after levels are registered
   import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
 
   // Initialize GameEngine with Heist
@@ -109,26 +109,16 @@ permalink: /gamify/heist
     fetchOptions: window._fetchOptions,
   };
 
-  // Create GameCore instance
+  // Create GameCore instance - this initializes everything
   const gameCore = new GameCore(environment, GameControl);
   
   // Function to safely handle start button
   function handleStartButton() {
-    let heist = window._heistGameInstance;
-    
-    // If game not initialized yet, initialize it now
+    const heist = window._heistGameInstance;
     if (!heist) {
-      console.log('Initializing Heist game...');
-      if (gameCore.gameControl && gameCore.gameControl.currentLevel) {
-        gameCore.gameControl.currentLevel.initialize();
-        heist = window._heistGameInstance;
-      }
-      if (!heist) {
-        console.error('Failed to initialize game');
-        return false;
-      }
+      console.error('Game not initialized yet');
+      return false;
     }
-    
     document.getElementById('overlay').classList.add('hidden');
     heist.showCutscene(INTRO_SCENES, () => {
       heist.resetGame();
