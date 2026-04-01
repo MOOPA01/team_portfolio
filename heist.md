@@ -4,7 +4,7 @@ title: H.E.I.S.T.EXE
 permalink: /gamify/heist
 ---
 
-<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/heist/heist-game.css">
 
 <div id="heist-shell">
 
@@ -75,18 +75,19 @@ permalink: /gamify/heist
 
 </div>
 
-<script>window._siteBaseUrl = '{{site.baseurl}}';</script>
 <script type="module">
-  // Expose config globals for non-module NPC code in combined builds
-  import { pythonURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
+  // Set globals needed by level files before any imports run
+  window._siteBaseUrl = '{{site.baseurl}}';
+
+  import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
   window._pythonURI    = pythonURI;
+  window._javaURI      = javaURI;
   window._fetchOptions = fetchOptions;
-</script>
-<script type="module">
-  import { initGame, startGame }  from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
-  import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
+
+  import { initGame, startGame }  from '{{site.baseurl}}/assets/js/heist/heist-core.js';
+  import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/heist/heist-level-1.js';
+  import '{{site.baseurl}}/assets/js/heist/heist-level-2.js';
+  import '{{site.baseurl}}/assets/js/heist/heist-level-3.js';
   import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/heist/heist-level-4.js';
 
   initGame({
