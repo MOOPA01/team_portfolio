@@ -4,7 +4,7 @@ title: H.E.I.S.T.EXE
 permalink: /gamify/heist
 ---
 
-<link rel="stylesheet" href="{{site.baseurl}}/assets/js/heist/heist-game.css">
+<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
 
 <div id="heist-shell">
 
@@ -34,7 +34,7 @@ permalink: /gamify/heist
   <div id="overlay">
     <div id="overlay-title" class="green">H.E.I.S.T.EXE</div>
     <div id="overlay-sub">
-      Ghost Protocol Activated<br>
+      Ghost Protocol Active<br>
       Collect all gems. Reach the extraction point.<br>
       Avoid the guards.
     </div>
@@ -84,11 +84,11 @@ permalink: /gamify/heist
   window._javaURI      = javaURI;
   window._fetchOptions = fetchOptions;
 
-  import { initGame, startGame }  from '{{site.baseurl}}/assets/js/heist/heist-core.js';
-  import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/heist/heist-level-1.js';
-  import '{{site.baseurl}}/assets/js/heist/heist-level-2.js';
-  import '{{site.baseurl}}/assets/js/heist/heist-level-3.js';
-  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/heist/heist-level-4.js';
+  import { initGame, startGame }  from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
+  import { INTRO_SCENES }         from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
+  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
+  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
 
   initGame({
     canvasId:         'c',
