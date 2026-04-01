@@ -3,14 +3,14 @@
 //  Shows how to integrate Heist with the GameCore framework
 // =============================================================
 
-import GameCore from '/path/to/GameEnginev1.1/essentials/Game.js';
-import GameControl from '/path/to/GameEnginev1.1/essentials/GameControl.js';
-import HeistLevel from '/path/to/heist/HeistLevel.js';
-import { LEVELS, registerLevel } from '/path/to/heist/heist-core.js';
+import GameCore from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
+import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
+import HeistLevel from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/HeistLevel.js';
+import { LEVELS, registerLevel } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
 
 // Import your level definitions
-import '/path/to/heist/heist-level-1.js';
-import '/path/to/heist/heist-level-2.js';
+import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
+import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
 // ... import more levels as needed
 
 /**
@@ -31,7 +31,7 @@ import '/path/to/heist/heist-level-2.js';
 export default async function initHeistGame() {
   // Configuration for the game environment
   const environment = {
-    path: "{{site.baseurl}}",  // Jyill template variable
+    path: "{{site.baseurl}}",  // Jekyll template variable
     gameContainer: document.getElementById("gameContainer"),
     gameCanvas: document.getElementById("gameCanvas"),
     gameLevelClasses: [HeistLevel],
