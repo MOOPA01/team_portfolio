@@ -114,11 +114,21 @@ permalink: /gamify/heist
   
   // Function to safely handle start button
   function handleStartButton() {
-    const heist = window._heistGameInstance;
+    let heist = window._heistGameInstance;
+    
+    // If game not initialized yet, initialize it now
     if (!heist) {
-      console.error('Game not initialized yet');
-      return false;
+      console.log('Initializing Heist game...');
+      if (gameCore.gameControl && gameCore.gameControl.currentLevel) {
+        gameCore.gameControl.currentLevel.initialize();
+        heist = window._heistGameInstance;
+      }
+      if (!heist) {
+        console.error('Failed to initialize game');
+        return false;
+      }
     }
+    
     document.getElementById('overlay').classList.add('hidden');
     heist.showCutscene(INTRO_SCENES, () => {
       heist.resetGame();
