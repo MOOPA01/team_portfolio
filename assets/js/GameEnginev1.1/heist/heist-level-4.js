@@ -4,9 +4,8 @@
 //  Guards: 1.5x player speed (4.8), bounce diagonal = 3.39
 // =============================================================
 
-import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL,
-         showCutscene, showEndScreen }
-  from './heist-core.js';
+const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
+const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await import(_coreUrl);
 
 registerLevel({
   walls: buildBorderWalls(COLS, ROWS).concat([
@@ -49,5 +48,8 @@ const OUTRO_SCENES = [
 ];
 
 export function showEndingCutscene() {
-  showCutscene(OUTRO_SCENES, () => showEndScreen());
+  const heist = window._heistGameInstance;
+  if (heist) {
+    heist.showCutscene(OUTRO_SCENES, () => heist.showEndScreen());
+  }
 }
