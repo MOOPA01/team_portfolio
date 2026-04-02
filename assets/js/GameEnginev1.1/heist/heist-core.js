@@ -70,7 +70,7 @@ function buildBarriers(walls) {
 class Gem {
   constructor(data) {
     this.x     = data.x; this.y = data.y; this.r = data.r || 6;
-    this.value = Number(data.value ?? 1);
+    this.value = Number(data.value !== undefined ? data.value : 1);
     // From Coin.js: collection state machine fields
     this.collected            = false;
     this.collectCount         = 0;
@@ -244,7 +244,13 @@ function drawTimer() {
   const str = formatTime(Date.now() - runStartTime);
   const pad=8, fw=9, tw=str.length*fw, bx=W-tw-pad*2-10, by=8, bw=tw+pad*2, bh=22;
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+  ctx.beginPath(); 
+  if (ctx.roundRect) {
+    ctx.roundRect(bx, by, bw, bh, 4);
+  } else {
+    ctx.rect(bx, by, bw, bh);
+  }
+  ctx.fill();
   ctx.strokeStyle = 'rgba(0,200,120,0.15)'; ctx.lineWidth = 1; ctx.stroke();
   ctx.font = '13px Orbitron, monospace'; ctx.fillStyle = 'rgba(0,230,140,0.85)';
   ctx.textAlign = 'right'; ctx.fillText(str, W-10-pad+pad, by+bh-6); ctx.textAlign = 'left';
