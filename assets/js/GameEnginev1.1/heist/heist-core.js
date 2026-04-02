@@ -1,6 +1,7 @@
 // =============================================================
 //  H.E.I.S.T.EXE  —  heist-core.js  (ES Module)
 //  Ghost Protocol: Infiltration Engine
+//  Integrated with GameEngine framework
 // =============================================================
 
 import { initNPCSystem } from './heist-npc.js';
@@ -55,46 +56,37 @@ let npcEntity = null; // NPC position on level 1
 function buildWallSet(walls) {
   return new Set(walls.map(w => `${w.x},${w.y}`));
 }
-function isWall(px, py) {
-  return wallSet.has(`${Math.floor(px / CELL)},${Math.floor(py / CELL)}`);
-}
-function buildBarriers(walls) {
-  return walls.map(w => ({
-    x: w.x * CELL, y: w.y * CELL, width: CELL, height: CELL,
-    color: 'rgba(20,24,36,1)', stroke: 'rgba(80,100,160,0.5)',
-    visible: true, hitbox: { widthPercentage: 1.0, heightPercentage: 1.0 }
-  }));
-}
 
 // ─── GEM CLASS (logic adapted from Coin.js) ──────────────────
 class Gem {
-  constructor(data) {
+  constructor(data, ctx) {
     this.x     = data.x; this.y = data.y; this.r = data.r || 6;
     this.value = Number(data.value ?? 1);
+    this.ctx = ctx;
     // From Coin.js: collection state machine fields
     this.collected            = false;
     this.collectCount         = 0;
     this.collectCooldownUntil = 0;
     this.color = data.color || '#00c8ff'; // no stroke — one solid color
   }
+  
   draw() {
-    // Mirrors Coin.js draw(): bail if collected, then draw shape
-    if (this.collected) return;
+    if (this.collected || !this.ctx) return;
     const r = this.r;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 1.4);
-    ctx.lineTo(r, 0);
-    ctx.lineTo(0,  r * 1.4);
-    ctx.lineTo(-r, 0);
-    ctx.closePath();
-    ctx.fillStyle = this.color;
-    ctx.fill(); // no stroke
-    ctx.restore();
+    this.ctx.save();
+    this.ctx.translate(this.x, this.y);
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, -r * 1.4);
+    this.ctx.lineTo(r, 0);
+    this.ctx.lineTo(0,  r * 1.4);
+    this.ctx.lineTo(-r, 0);
+    this.ctx.closePath();
+    this.ctx.fillStyle = this.color;
+    this.ctx.fill();
+    this.ctx.restore();
   }
-  // From Coin.js collect(): cooldown guard, set collected, bump count, spawn effect
-  collect() {
+  
+  collect(onCollect) {
     if (performance.now() < this.collectCooldownUntil) return false;
     this.collected            = true;
     this.collectCooldownUntil = performance.now() + 200;
@@ -103,7 +95,7 @@ class Gem {
     // REMOVED: spawnParticles(this.x, this.y, this.color, 14);
     updateHUD(); return true;
   }
-  // From Coin.js checkPlayerCollision(): cooldown + radius distance check
+  
   checkPlayerCollision(px, py, pr) {
     if (this.collected || performance.now() < this.collectCooldownUntil) return false;
     const dx = px - this.x, dy = py - this.y;
@@ -113,7 +105,7 @@ class Gem {
 
 // ─── PLAYER CONTROLLER ───────────────────────────────────────
 class PlayerController {
-  constructor(data) {
+  constructor(data, isWallFunc) {
     this.keypress = {
       up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight',
       upAlt:'w', leftAlt:'a', downAlt:'s', rightAlt:'d',
@@ -124,17 +116,21 @@ class PlayerController {
     this.xVelocity = this.speed; this.yVelocity = this.speed;
     this.velocity = {x:0, y:0}; this.pressedKeys = {};
     this.moved = false;
+    this.isWall = isWallFunc;
     this._boundKeyDown = this.handleKeyDown.bind(this);
     this._boundKeyUp   = this.handleKeyUp.bind(this);
     window.addEventListener('keydown', this._boundKeyDown);
     window.addEventListener('keyup',   this._boundKeyUp);
   }
+  
   handleKeyDown(e) {
     this.pressedKeys[e.key] = true;
   }
+  
   handleKeyUp(e) {
     this.pressedKeys[e.key] = false;
   }
+  
   updateVelocity() {
     this.velocity.x = 0;
     this.velocity.y = 0;
@@ -174,6 +170,7 @@ class PlayerController {
     ctx.beginPath(); ctx.arc(3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
+  
   destroy() {
     window.removeEventListener('keydown', this._boundKeyDown);
     window.removeEventListener('keyup', this._boundKeyUp);
@@ -480,8 +477,8 @@ function draw() {
     }
   });
 
-  // Gems
-  gems.forEach(g => g.draw());
+    // Gems
+    this.gems.forEach(g => g.draw());
 
   // Guards
   guards.forEach(g => drawGuard(g));
@@ -489,8 +486,8 @@ function draw() {
   // NPC Entity
   drawNPCEntity();
 
-  // Player
-  player.draw();
+    // Player
+    this.player.draw(this.ctx, this.dead);
 
   // Particles (now disabled)
   particles = particles.filter(p => p.life > 0);
@@ -665,7 +662,6 @@ function bindLeaderboardInput() {
 }
 
 // ─── PUBLIC API ──────────────────────────────────────────────
-
 export function initGame({ canvasId, introScenes, onEndingCutscene }) {
   canvas = document.getElementById(canvasId);
   ctx    = canvas.getContext('2d');
