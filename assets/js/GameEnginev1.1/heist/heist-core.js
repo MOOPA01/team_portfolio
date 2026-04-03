@@ -57,9 +57,22 @@ function buildWallSet(walls) {
   return new Set(walls.map(w => `${w.x},${w.y}`));
 }
 
+function buildBarriers(walls) {
+  return walls.map(w => ({
+    x: w.x * CELL, y: w.y * CELL, width: CELL, height: CELL,
+    color: '#131e30', stroke: 'rgba(0,200,120,0.2)'
+  }));
+}
+
+function isWall(x, y) {
+  const gx = Math.floor(x / CELL);
+  const gy = Math.floor(y / CELL);
+  return wallSet && wallSet.has(`${gx},${gy}`);
+}
+
 // ─── GEM CLASS (logic adapted from Coin.js) ──────────────────
 class Gem {
-  constructor(data, ctx) {
+  constructor(data) {
     this.x     = data.x; this.y = data.y; this.r = data.r || 6;
     this.value = Number(data.value !== undefined ? data.value : 1);
     // From Coin.js: collection state machine fields
@@ -70,23 +83,22 @@ class Gem {
   }
   
   draw() {
-    if (this.collected || !this.ctx) return;
+    if (this.collected) return;
     const r = this.r;
-    this.ctx.save();
-    this.ctx.translate(this.x, this.y);
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, -r * 1.4);
-    this.ctx.lineTo(r, 0);
-    this.ctx.lineTo(0,  r * 1.4);
-    this.ctx.lineTo(-r, 0);
-    this.ctx.closePath();
-    this.ctx.fillStyle = this.color;
-    this.ctx.fill();
-    this.ctx.restore();
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.4);
+    ctx.lineTo(r, 0);
+    ctx.lineTo(0,  r * 1.4);
+    ctx.lineTo(-r, 0);
+    ctx.closePath();
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.restore();
   }
   
   collect(onCollect) {
-    if (performance.now() < this.collectCooldownUntil) return false;
     this.collected            = true;
     this.collectCooldownUntil = performance.now() + 200;
     this.collectCount        += 1;
@@ -104,7 +116,7 @@ class Gem {
 
 // ─── PLAYER CONTROLLER ───────────────────────────────────────
 class PlayerController {
-  constructor(data, isWallFunc) {
+  constructor(data) {
     this.keypress = {
       up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight',
       upAlt:'w', leftAlt:'a', downAlt:'s', rightAlt:'d',
@@ -115,7 +127,6 @@ class PlayerController {
     this.xVelocity = this.speed; this.yVelocity = this.speed;
     this.velocity = {x:0, y:0}; this.pressedKeys = {};
     this.moved = false;
-    this.isWall = isWallFunc;
     this._boundKeyDown = this.handleKeyDown.bind(this);
     this._boundKeyUp   = this.handleKeyUp.bind(this);
     window.addEventListener('keydown', this._boundKeyDown);
@@ -483,7 +494,7 @@ function draw() {
   });
 
     // Gems
-    this.gems.forEach(g => g.draw());
+    gems.forEach(g => g.draw());
 
   // Guards
   guards.forEach(g => drawGuard(g));
@@ -492,7 +503,7 @@ function draw() {
   drawNPCEntity();
 
     // Player
-    this.player.draw(this.ctx, this.dead);
+    player.draw();
 
   // Particles (now disabled)
   particles = particles.filter(p => p.life > 0);

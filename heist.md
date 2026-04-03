@@ -5,7 +5,6 @@ permalink: /gamify/heist
 ---
 
 <link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
-<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.css">
 <link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.css">
 
 <div id="heist-shell">
@@ -130,6 +129,7 @@ permalink: /gamify/heist
   import { GameCore } from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
   import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
   
+  import { initGame, startGame } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
   // Import level files FIRST to populate LEVELS array before HeistLevel is used
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
