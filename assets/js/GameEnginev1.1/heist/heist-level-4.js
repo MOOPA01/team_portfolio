@@ -1,7 +1,6 @@
 // =============================================================
 //  H.E.I.S.T.EXE  —  heist-level-4.js
 //  Sector: THE VAULT CORE  |  Difficulty: GHOST TIER
-//  Guards: 1.5x player speed (4.8), bounce diagonal = 3.39
 // =============================================================
 
 const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
@@ -9,29 +8,34 @@ const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await im
 
 registerLevel({
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(2,  2, 6, 4), ...rectWall(14, 2, 6, 4),
-    ...rectWall(2, 10, 6, 4), ...rectWall(14,10, 6, 4),
-    ...rectWall(9,  6, 4, 1), ...rectWall(9,  9, 4, 1),
+    ...rectWall(2,2,6,4), ...rectWall(14,2,6,4),
+    ...rectWall(2,10,6,4),...rectWall(14,10,6,4),
+    ...rectWall(9,6,4,1), ...rectWall(9,9,4,1),
   ]),
-  start: { x: 1, y: 7 },
-  goal:  { x: 9, y: 7, w: 4, h: 2 },
+  start: { x:1, y:7 },
+  goal:  { x:9, y:7, w:4, h:2 },
+  shadowZones: [
+    { x:8,  y:1,  w:6, h:1 },   // top centre strip
+    { x:8,  y:14, w:6, h:1 },   // bottom centre strip
+    { x:1,  y:5,  w:1, h:5 },   // left corridor shadow
+  ],
   gems: [
-    { x: 4,  y: 7,  color: '#00c8ff' }, { x: 7,  y: 7,  color: '#ff00cc' },
-    { x: 14, y: 7,  color: '#00c8ff' }, { x: 17, y: 7,  color: '#ff00cc' },
-    { x: 10, y: 3,  color: '#ff00cc' }, { x: 11, y: 3,  color: '#00c8ff' },
-    { x: 10, y: 12, color: '#00c8ff' }, { x: 11, y: 12, color: '#ff00cc' },
-    { x: 2,  y: 7,  color: '#ff00cc' }, { x: 19, y: 7,  color: '#00c8ff' },
+    {x:4,y:7,color:'#00c8ff'},{x:7,y:7,color:'#ff00cc'},
+    {x:14,y:7,color:'#00c8ff'},{x:17,y:7,color:'#ff00cc'},
+    {x:10,y:3,color:'#ff00cc'},{x:11,y:3,color:'#00c8ff'},
+    {x:10,y:12,color:'#00c8ff'},{x:11,y:12,color:'#ff00cc'},
+    {x:2,y:7,color:'#ff00cc'},{x:19,y:7,color:'#00c8ff'},
   ],
   guards: [
-    { x: 4*CELL+CELL/2,  y: 8*CELL+CELL/2,  vx: 4.8,  vy: 0    },
-    { x:17*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx:-4.8,  vy: 0    },
-    { x:10*CELL+CELL/2,  y: 3*CELL+CELL/2,  vx: 0,    vy: 4.8  },
-    { x:11*CELL+CELL/2,  y:12*CELL+CELL/2,  vx: 0,    vy:-4.8  },
-    { x: 8*CELL+CELL/2,  y: 7*CELL+CELL/2,  vx: 3.39, vy: 3.39, bounce: true },
-    { x:13*CELL+CELL/2,  y: 8*CELL+CELL/2,  vx:-3.39, vy:-3.39, bounce: true },
-    { x: 1*CELL+CELL/2,  y: 3*CELL+CELL/2,  vx: 0,    vy: 4.8  },
-    { x:20*CELL+CELL/2,  y:12*CELL+CELL/2,  vx: 0,    vy:-4.8  },
-  ]
+    {x:4*CELL+CELL/2, y:8*CELL+CELL/2,  vx:4.8, vy:0},
+    {x:17*CELL+CELL/2,y:7*CELL+CELL/2,  vx:-4.8,vy:0},
+    {x:10*CELL+CELL/2,y:3*CELL+CELL/2,  vx:0,   vy:4.8},
+    {x:11*CELL+CELL/2,y:12*CELL+CELL/2, vx:0,   vy:-4.8},
+    {x:8*CELL+CELL/2, y:7*CELL+CELL/2,  vx:3.39,vy:3.39,bounce:true},
+    {x:13*CELL+CELL/2,y:8*CELL+CELL/2,  vx:-3.39,vy:-3.39,bounce:true},
+    {x:1*CELL+CELL/2, y:3*CELL+CELL/2,  vx:0,   vy:4.8},
+    {x:20*CELL+CELL/2,y:12*CELL+CELL/2, vx:0,   vy:-4.8},
+  ],
 });
 
 const OUTRO_SCENES = [
@@ -49,7 +53,5 @@ const OUTRO_SCENES = [
 
 export function showEndingCutscene() {
   const heist = window._heistGameInstance;
-  if (heist) {
-    heist.showCutscene(OUTRO_SCENES, () => heist.showEndScreen());
-  }
+  if (heist) heist.showCutscene(OUTRO_SCENES, () => heist.showEndScreen());
 }

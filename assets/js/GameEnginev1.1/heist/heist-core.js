@@ -1,13 +1,15 @@
 // =============================================================
-//  H.E.I.S.T.EXE  —  heist-core.js  (ES Module)
-//  Ghost Protocol: Infiltration Engine
-//  Integrated with GameEngine framework
+//  H.E.I.S.T.EXE  —  heist-core.js
+//  Features: vision cones, shadow zones, noise/sprint,
+//  procedural floor, level select, ghost replay (toggleable),
+//  key rebinding, typed cutscene text, settings panel
 // =============================================================
 
-import { initNPCSystem } from './heist-npc.js';
+import { initNPCSystem }   from './heist-npc.js';
 import { initLeaderboard } from './heist-leaderboard.js';
+import { runMinigame }     from './heist-minigames.js';
 
-// ─── GRID CONSTANTS (exported for use in level files) ────────
+// ─── GRID CONSTANTS ──────────────────────────────────────────
 export const CELL = 32;
 export const COLS = 22;
 export const ROWS = 16;
@@ -18,699 +20,905 @@ export const H    = ROWS * CELL;
 export const LEVELS = [];
 export function registerLevel(levelData) { LEVELS.push(levelData); }
 
-// ─── WALL UTILITIES (exported for level files) ───────────────
+// ─── WALL UTILITIES ──────────────────────────────────────────
 export function buildBorderWalls(cols, rows) {
   const w = [];
-  for (let x = 0; x < cols; x++) {
-    w.push({x, y: 0}); w.push({x, y: rows - 1});
-  }
-  for (let y = 1; y < rows - 1; y++) {
-    w.push({x: 0, y}); w.push({x: cols - 1, y});
-  }
+  for (let x = 0; x < cols; x++) { w.push({x,y:0}); w.push({x,y:rows-1}); }
+  for (let y = 1; y < rows-1; y++) { w.push({x:0,y}); w.push({x:cols-1,y}); }
   return w;
 }
-
 export function rectWall(x, y, w, h) {
   const cells = [];
-  for (let row = y; row < y + h; row++)
-    for (let col = x; col < x + w; col++)
-      cells.push({x: col, y: row});
+  for (let row = y; row < y+h; row++)
+    for (let col = x; col < x+w; col++)
+      cells.push({x:col,y:row});
   return cells;
 }
 
-// ─── MODULE-PRIVATE ENGINE STATE ─────────────────────────────
+// ─── SETTINGS ────────────────────────────────────────────────
+const DEFAULT_KEYS = { up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight', sprint:'Shift' };
+let settings = {
+  ghostReplay: true,
+  keys: { ...DEFAULT_KEYS },
+};
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('heist_settings') || '{}');
+    if (s.ghostReplay !== undefined) settings.ghostReplay = s.ghostReplay;
+    if (s.keys) settings.keys = { ...DEFAULT_KEYS, ...s.keys };
+  } catch(e) {}
+}
+function saveSettings() {
+  localStorage.setItem('heist_settings', JSON.stringify(settings));
+}
+
+// ─── ENGINE STATE ────────────────────────────────────────────
 let canvas, ctx;
-let level = 0, deaths = 0, totalGems = 0;
-let player, guards, gems, wallSet, wallBarriers, goalRect;
+let level = 0, deaths = 0;
+let player, guards, gems, wallSet, wallBarriers, goalRect, shadowZones = [];
 let dead = false, levelWon = false, deathTimer = 0, winFlash = 0;
-let running = false, particles = [], t = 0;
-let runStartTime = 0, timerActive = false;
-let csQueue = [], csIndex = 0, csOnComplete = null;
+let running = false, paused = false, t = 0;
+let runStartTime = 0, pausedTimeAccum = 0, pauseStart = 0, timerActive = false;
+let csQueue = [], csIndex = 0, csOnComplete = null, csTypeTimer = null;
 let _onEndingCutscene = null, _introScenes = null;
-let npc = null;
-let leaderboard = null;
-let currentRunScore = null;
-let npcEntity = null; // NPC position on level 1
+let npc = null, leaderboard = null, currentRunScore = null;
+let npcEntity = null;
+let allGemsCollected = false;
+let staticCanvas = null, staticCtx = null;
+let inSettings = false;
 
-// ─── PRIVATE WALL HELPERS ────────────────────────────────────
-function buildWallSet(walls) {
-  return new Set(walls.map(w => `${w.x},${w.y}`));
+// ─── GHOST REPLAY ────────────────────────────────────────────
+let ghostFrames    = [];   // current run recording [{x,y}]
+let bestGhostRun   = null; // saved best run from localStorage per level set
+let ghostPlayback  = [];   // playback positions for current frame
+let ghostFrame     = 0;
+const GHOST_SAMPLE = 2;    // record every N frames to save memory
+
+function loadBestGhost() {
+  try { bestGhostRun = JSON.parse(localStorage.getItem('heist_ghost') || 'null'); } catch(e) { bestGhostRun = null; }
+}
+function saveBestGhost(frames) {
+  try { localStorage.setItem('heist_ghost', JSON.stringify(frames)); } catch(e) {}
 }
 
-function buildBarriers(walls) {
-  return walls.map(w => ({
-    x: w.x * CELL, y: w.y * CELL, width: CELL, height: CELL,
-    color: '#131e30', stroke: 'rgba(0,200,120,0.2)'
+// ─── LEVEL SELECT ────────────────────────────────────────────
+let levelsUnlocked = 1;
+function loadProgress() {
+  levelsUnlocked = Math.max(1, parseInt(localStorage.getItem('heist_unlocked') || '1'));
+}
+function saveProgress(lvl) {
+  if (lvl+1 > levelsUnlocked) {
+    levelsUnlocked = lvl+1;
+    localStorage.setItem('heist_unlocked', String(levelsUnlocked));
+  }
+}
+
+// ─── WALL HELPERS ────────────────────────────────────────────
+function buildWallSet(walls) { return new Set(walls.map(w=>`${w.x},${w.y}`)); }
+function buildBarriers(walls) { return walls.map(w=>({x:w.x*CELL,y:w.y*CELL,width:CELL,height:CELL})); }
+function isWall(x, y) { return wallSet && wallSet.has(`${Math.floor(x/CELL)},${Math.floor(y/CELL)}`); }
+
+// ─── SHADOW ZONE HELPERS ─────────────────────────────────────
+function buildShadowZones(zones) {
+  return (zones||[]).map(z => ({
+    x: z.x*CELL, y: z.y*CELL, w: z.w*CELL, h: z.h*CELL
   }));
 }
-
-function isWall(x, y) {
-  const gx = Math.floor(x / CELL);
-  const gy = Math.floor(y / CELL);
-  return wallSet && wallSet.has(`${gx},${gy}`);
-}
-
-// ─── GEM CLASS (logic adapted from Coin.js) ──────────────────
-class Gem {
-  constructor(data) {
-    this.x     = data.x; this.y = data.y; this.r = data.r || 6;
-    this.value = Number(data.value !== undefined ? data.value : 1);
-    // From Coin.js: collection state machine fields
-    this.collected            = false;
-    this.collectCount         = 0;
-    this.collectCooldownUntil = 0;
-    this.color = data.color || '#00c8ff'; // no stroke — one solid color
-  }
-  
-  draw() {
-    if (this.collected) return;
-    const r = this.r;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 1.4);
-    ctx.lineTo(r, 0);
-    ctx.lineTo(0,  r * 1.4);
-    ctx.lineTo(-r, 0);
-    ctx.closePath();
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    ctx.restore();
-  }
-  
-  collect(onCollect) {
-    this.collected            = true;
-    this.collectCooldownUntil = performance.now() + 200;
-    this.collectCount        += 1;
-    totalGems++;
-    // REMOVED: spawnParticles(this.x, this.y, this.color, 14);
-    updateHUD(); return true;
-  }
-  
-  checkPlayerCollision(px, py, pr) {
-    if (this.collected || performance.now() < this.collectCooldownUntil) return false;
-    const dx = px - this.x, dy = py - this.y;
-    return Math.sqrt(dx*dx + dy*dy) < pr + this.r + 2;
-  }
-}
-
-// ─── PLAYER CONTROLLER ───────────────────────────────────────
-class PlayerController {
-  constructor(data) {
-    this.keypress = {
-      up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight',
-      upAlt:'w', leftAlt:'a', downAlt:'s', rightAlt:'d',
-      upAlt2:'W', leftAlt2:'A', downAlt2:'S', rightAlt2:'D',
-    };
-    this.x = data.x; this.y = data.y; this.r = data.r || 9;
-    this.speed = data.speed || 3.2;
-    this.xVelocity = this.speed; this.yVelocity = this.speed;
-    this.velocity = {x:0, y:0}; this.pressedKeys = {};
-    this.moved = false;
-    this._boundKeyDown = this.handleKeyDown.bind(this);
-    this._boundKeyUp   = this.handleKeyUp.bind(this);
-    window.addEventListener('keydown', this._boundKeyDown);
-    window.addEventListener('keyup',   this._boundKeyUp);
-  }
-  
-  handleKeyDown(e) {
-    this.pressedKeys[e.key] = true;
-  }
-  
-  handleKeyUp(e) {
-    this.pressedKeys[e.key] = false;
-  }
-  
-  updateVelocity() {
-    this.velocity.x = 0;
-    this.velocity.y = 0;
-    const keys = this.pressedKeys;
-    const up = keys['ArrowUp'] || keys['w'] || keys['W'];
-    const dn = keys['ArrowDown'] || keys['s'] || keys['S'];
-    const lt = keys['ArrowLeft'] || keys['a'] || keys['A'];
-    const rt = keys['ArrowRight'] || keys['d'] || keys['D'];
-    if (up) this.velocity.y -= this.yVelocity;
-    if (dn) this.velocity.y += this.yVelocity;
-    if (lt) this.velocity.x -= this.xVelocity;
-    if (rt) this.velocity.x += this.xVelocity;
-    // Diagonal speed normalization
-    if (this.velocity.x !== 0 && this.velocity.y !== 0) {
-      this.velocity.x *= 0.707;
-      this.velocity.y *= 0.707;
-    }
-  }
-  move() {
-    const nextX = this.x + this.velocity.x;
-    const nextY = this.y + this.velocity.y;
-    if (!isWall(nextX, nextY)) this.x = nextX;
-    if (!isWall(this.x, nextY)) this.y = nextY;
-  }
-  draw() {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#00e87a';
-    ctx.fill();
-    ctx.strokeStyle = '#00b860';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    // Eyes
-    ctx.fillStyle = '#0a0e1a';
-    ctx.beginPath(); ctx.arc(-3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(3, -2, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-  
-  destroy() {
-    window.removeEventListener('keydown', this._boundKeyDown);
-    window.removeEventListener('keyup', this._boundKeyUp);
-  }
-}
-
-// ─── LEVEL INIT ──────────────────────────────────────────────
-function initLevel(idx) {
-  const L = LEVELS[idx];
-  wallSet = buildWallSet(L.walls);
-  wallBarriers = buildBarriers(L.walls);
-  if (player && player.destroy) player.destroy();
-  player = new PlayerController({
-    x: L.start.x * CELL + CELL/2,
-    y: L.start.y * CELL + CELL/2,
-    r: 9,
-    speed: 3.2,
-  });
-  goalRect = { x:L.goal.x*CELL, y:L.goal.y*CELL, w:L.goal.w*CELL, h:L.goal.h*CELL };
-  gems = L.gems.map(g => new Gem({
-    x: g.x * CELL + CELL/2,
-    y: g.y * CELL + CELL/2,
-    r: g.r || 6,
-    value: g.value || 1,
-    color: g.color || '#00c8ff',
-  }));
-  guards = L.guards.map(g => ({...g, r: g.r || 10}));
-  dead = false; levelWon = false; deathTimer = 0; winFlash = 0; particles = [];
-  if (idx === 0 && !timerActive) { runStartTime = Date.now(); timerActive = true; }
-  document.getElementById('h-level').textContent = idx + 1;
-  document.getElementById('h-total').textContent = gems.length;
-  
-  // Initialize NPC entity on level 1 at a specific position
-  if (idx === 0) {
-    npcEntity = {
-      x: 10.5 * CELL,  // Place NPC at grid position (10, 10)
-      y: 10.5 * CELL,
-      r: 8,
-      color: '#ffdd00'
-    };
-    const hintEl = document.getElementById('npc-hint');
-    if (hintEl) hintEl.classList.add('active');
-  } else {
-    npcEntity = null;
-    const hintEl = document.getElementById('npc-hint');
-    if (hintEl) hintEl.classList.remove('active');
-  }
-  
-  // Reset NPC chat history
-  if (npc) npc.reset();
-  
-  updateHUD();
-}
-
-function updateHUD() {
-  document.getElementById('h-deaths').textContent = deaths;
-  document.getElementById('h-gems').textContent   = gems.filter(g => g.collected).length;
-}
-
-// ─── TIMER ───────────────────────────────────────────────────
-function formatTime(ms) {
-  const s = Math.floor(ms/1000), m = Math.floor(s/60);
-  return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((ms%1000)/10)).padStart(2,'0')}`;
-}
-
-function drawTimer() {
-  if (!timerActive) return;
-  const str = formatTime(Date.now() - runStartTime);
-  const pad=8, fw=9, tw=str.length*fw, bx=W-tw-pad*2-10, by=8, bw=tw+pad*2, bh=22;
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.beginPath(); 
-  if (ctx.roundRect) {
-    ctx.roundRect(bx, by, bw, bh, 4);
-  } else {
-    ctx.rect(bx, by, bw, bh);
-  }
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,200,120,0.15)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.font = '13px Orbitron, monospace'; ctx.fillStyle = 'rgba(0,230,140,0.85)';
-  ctx.textAlign = 'right'; ctx.fillText(str, W-10-pad+pad, by+bh-6); ctx.textAlign = 'left';
-}
-
-// ─── END SCREEN ──────────────────────────────────────────────
-export function showEndScreen() {
-  timerActive = false;
-  const totalMs = Date.now() - runStartTime;
-  document.getElementById('end-time').textContent   = formatTime(totalMs);
-  document.getElementById('end-deaths').textContent = String(deaths);
-  document.getElementById('canvas-wrap').style.display = 'none';
-  document.getElementById('end-screen').classList.remove('hidden');
-  
-  // Save score and display leaderboard
-  currentRunScore = leaderboard.addScore('temp_player', totalMs, deaths);
-  renderLeaderboard(currentRunScore);
-  
-  document.getElementById('end-play-again').onclick = () => {
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('canvas-wrap').style.display = '';
-    level = 0; deaths = 0; totalGems = 0; timerActive = false;
-    currentRunScore = null;
-    initLevel(0); running = true; loop();
-  };
-}
-
-// ─── LEADERBOARD RENDERING ───────────────────────────────────
-function renderLeaderboard(currentScore) {
-  const topScores = leaderboard.getTop5();
-  const tableBody = document.querySelector('#leaderboard-table tbody');
-  
-  tableBody.innerHTML = '';
-  
-  if (topScores.length === 0) {
-    const emptyRow = document.createElement('tr');
-    emptyRow.innerHTML = '<td colspan="4" id="leaderboard-empty">No scores yet. Be the first!</td>';
-    tableBody.appendChild(emptyRow);
-    return;
-  }
-  
-  topScores.forEach((score, idx) => {
-    const row = document.createElement('tr');
-    if (currentScore && score.id === currentScore.id) {
-      row.classList.add('current-player');
-    }
-    
-    row.innerHTML = `
-      <td class="rank">#${idx + 1}</td>
-      <td class="name">${escapeHtml(score.name)}</td>
-      <td class="time">${formatTime(score.time)}</td>
-      <td class="deaths">${score.deaths}</td>
-    `;
-    tableBody.appendChild(row);
-  });
-}
-
-// ─── PARTICLES (DISABLED - no visuals) ───────────────────────
-function spawnParticles(x, y, color, count=18) {
-  // Particles disabled - no visual effect
-  return;
-}
-
-// ─── GUARDS (enemies) ────────────────────────────────────────
-function moveGuards() {
-  if (levelWon) return;
-  
-  guards.forEach((g) => {
-    // If guard has vx/vy, move it (works for all existing levels)
-    if (g.vx !== undefined || g.vy !== undefined) {
-      if (g.vx === undefined) g.vx = 0;
-      if (g.vy === undefined) g.vy = 0;
-      
-      // Try moving in X direction
-      const nextX = g.x + g.vx;
-      const nextY = g.y + g.vy;
-      
-      // Check if new position would collide with walls
-      const canMoveX = !checkGuardWallCollision(nextX, g.y, g.r);
-      const canMoveY = !checkGuardWallCollision(g.x, nextY, g.r);
-      
-      // Move in X if no collision
-      if (canMoveX) {
-        g.x = nextX;
-      } else if (g.vx !== 0) {
-        g.vx *= -1; // Bounce off wall in X
-      }
-      
-      // Move in Y if no collision
-      if (canMoveY) {
-        g.y = nextY;
-      } else if (g.vy !== 0) {
-        g.vy *= -1; // Bounce off wall in Y
-      }
-      
-      // Keep in bounds
-      g.x = Math.max(g.r, Math.min(W - g.r, g.x));
-      g.y = Math.max(g.r, Math.min(H - g.r, g.y));
-    }
-  });
-}
-
-// Check if a guard position collides with walls
-function checkGuardWallCollision(gx, gy, gr) {
-  // Check all wall cells in the area
-  for (let x = Math.floor((gx - gr) / CELL); x <= Math.floor((gx + gr) / CELL); x++) {
-    for (let y = Math.floor((gy - gr) / CELL); y <= Math.floor((gy + gr) / CELL); y++) {
-      if (wallSet.has(`${x},${y}`)) {
-        // Circle-rectangle collision
-        const closestX = Math.max(x * CELL, Math.min(gx, (x + 1) * CELL));
-        const closestY = Math.max(y * CELL, Math.min(gy, (y + 1) * CELL));
-        const dx = gx - closestX;
-        const dy = gy - closestY;
-        if (dx * dx + dy * dy < gr * gr) {
-          return true; // Collision detected
-        }
-      }
-    }
+function playerInShadow() {
+  if (!player) return false;
+  for (const z of shadowZones) {
+    if (player.x > z.x && player.x < z.x+z.w && player.y > z.y && player.y < z.y+z.h) return true;
   }
   return false;
 }
 
-// ─── COLLISION ───────────────────────────────────────────────
-function checkCollisions() {
-  if (dead || levelWon) return;
-  for (const g of guards) {
-    const dx = player.x - g.x, dy = player.y - g.y;
-    if (Math.sqrt(dx*dx + dy*dy) < player.r + g.r) {
-      die(); return;
+// ─── GEM CLASS ───────────────────────────────────────────────
+class Gem {
+  constructor(data) {
+    this.x=data.x; this.y=data.y; this.r=data.r||6;
+    this.collected=false; this.cooldownUntil=0; this.color=data.color||'#00c8ff';
+  }
+  collect() { this.collected=true; this.cooldownUntil=performance.now()+200; updateHUD(); }
+  checkCollision(px,py,pr) {
+    if (this.collected||performance.now()<this.cooldownUntil) return false;
+    const dx=px-this.x, dy=py-this.y;
+    return (dx*dx+dy*dy)<(pr+this.r+2)*(pr+this.r+2);
+  }
+}
+
+// ─── PLAYER ──────────────────────────────────────────────────
+class PlayerController {
+  constructor(data) {
+    this.x=data.x; this.y=data.y; this.r=data.r||9;
+    this.normalSpeed=3.2; this.sprintSpeed=5.2;
+    this.vel={x:0,y:0}; this.keys={}; this.sprinting=false;
+    this._kd=this._onKeyDown.bind(this);
+    this._ku=this._onKeyUp.bind(this);
+    window.addEventListener('keydown',this._kd);
+    window.addEventListener('keyup',  this._ku);
+  }
+  _onKeyDown(e) { this.keys[e.key]=true; }
+  _onKeyUp(e)   { this.keys[e.key]=false; }
+  updateVelocity() {
+    const k=this.keys, sk=settings.keys;
+    const up = k[sk.up]   || k['w']||k['W'];
+    const dn = k[sk.down] || k['s']||k['S'];
+    const lt = k[sk.left] || k['a']||k['A'];
+    const rt = k[sk.right]|| k['d']||k['D'];
+    this.sprinting = !!k[sk.sprint];
+    const s = this.sprinting ? this.sprintSpeed : this.normalSpeed;
+    this.vel.x = rt ? s : lt ? -s : 0;
+    this.vel.y = dn ? s : up ? -s : 0;
+    if (this.vel.x!==0&&this.vel.y!==0) { this.vel.x*=0.707; this.vel.y*=0.707; }
+  }
+  move() {
+    const nx=this.x+this.vel.x, ny=this.y+this.vel.y;
+    if (!isWall(nx,ny))     this.x=nx;
+    if (!isWall(this.x,ny)) this.y=ny;
+  }
+  draw(alpha=1) {
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle='#00e87a';
+    ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  destroy() {
+    window.removeEventListener('keydown',this._kd);
+    window.removeEventListener('keyup',  this._ku);
+  }
+}
+
+// ─── STATIC LAYER ────────────────────────────────────────────
+function buildStaticLayer() {
+  if (!staticCanvas) {
+    staticCanvas=document.createElement('canvas');
+    staticCanvas.width=W; staticCanvas.height=H;
+    staticCtx=staticCanvas.getContext('2d');
+  }
+  const sc=staticCtx;
+  sc.fillStyle='#000'; sc.fillRect(0,0,W,H);
+  sc.strokeStyle='rgba(20,40,80,0.35)'; sc.lineWidth=0.5;
+  sc.beginPath();
+  for (let x=0;x<=W;x+=CELL){sc.moveTo(x,0);sc.lineTo(x,H);}
+  for (let y=0;y<=H;y+=CELL){sc.moveTo(0,y);sc.lineTo(W,y);}
+  sc.stroke();
+  // Shadow zones (baked in, darker floor)
+  shadowZones.forEach(z => {
+    sc.fillStyle='rgba(0,40,20,0.5)';
+    sc.fillRect(z.x,z.y,z.w,z.h);
+    sc.strokeStyle='rgba(0,180,80,0.15)';
+    sc.lineWidth=1;
+    sc.strokeRect(z.x+0.5,z.y+0.5,z.w-1,z.h-1);
+  });
+  sc.fillStyle='#0d1828';
+  wallBarriers.forEach(b=>sc.fillRect(b.x,b.y,CELL,CELL));
+  sc.strokeStyle='rgba(0,180,100,0.2)'; sc.lineWidth=1;
+  wallBarriers.forEach(b=>sc.strokeRect(b.x+0.5,b.y+0.5,CELL-1,CELL-1));
+}
+
+// ─── LEVEL INIT ──────────────────────────────────────────────
+function initLevel(idx) {
+  const L=LEVELS[idx];
+  wallSet      =buildWallSet(L.walls);
+  wallBarriers =buildBarriers(L.walls);
+  shadowZones  =buildShadowZones(L.shadowZones);
+  if (player) player.destroy();
+  player  =new PlayerController({x:L.start.x*CELL+CELL/2,y:L.start.y*CELL+CELL/2});
+  goalRect={x:L.goal.x*CELL,y:L.goal.y*CELL,w:L.goal.w*CELL,h:L.goal.h*CELL};
+  gems    =L.gems.map(g=>new Gem({x:g.x*CELL+CELL/2,y:g.y*CELL+CELL/2,r:g.r||6,color:g.color||'#00c8ff'}));
+  guards  =L.guards.map(g=>({...g,r:g.r||10,alertTimer:0,alertMode:false}));
+  dead=false; levelWon=false; deathTimer=0; winFlash=0; allGemsCollected=false;
+  if (idx===0&&!timerActive) { runStartTime=Date.now(); pausedTimeAccum=0; timerActive=true; }
+  document.getElementById('h-level').textContent=idx+1;
+  document.getElementById('h-total').textContent=gems.length;
+  npcEntity=idx===0?{x:10.5*CELL,y:10.5*CELL,r:8}:null;
+  const hint=document.getElementById('npc-hint');
+  if (hint) hint.classList.toggle('active',idx===0);
+  if (npc) npc.reset();
+  buildStaticLayer();
+  updateHUD();
+  // Ghost replay reset for this level
+  ghostFrames=[]; ghostFrame=0;
+  ghostPlayback = (settings.ghostReplay && bestGhostRun && bestGhostRun.level===idx) ? bestGhostRun.frames : [];
+}
+
+function updateHUD() {
+  document.getElementById('h-deaths').textContent=deaths;
+  document.getElementById('h-gems').textContent  =gems.filter(g=>g.collected).length;
+}
+
+// ─── TIMER (pause-aware) ─────────────────────────────────────
+export function formatTime(ms) {
+  const s=Math.floor(ms/1000), m=Math.floor(s/60);
+  return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((ms%1000)/10)).padStart(2,'0')}`;
+}
+function getElapsed() {
+  if (!timerActive) return 0;
+  const base = Date.now()-runStartTime-pausedTimeAccum;
+  return paused ? (pauseStart-runStartTime-pausedTimeAccum) : base;
+}
+
+function drawTimer() {
+  if (!timerActive) return;
+  const str=formatTime(getElapsed());
+  const pad=10,fw=9,tw=str.length*fw;
+  const bx=W-tw-pad*2-10,by=10,bw=tw+pad*2,bh=24;
+  ctx.fillStyle='rgba(6,10,20,0.75)'; ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle='rgba(0,232,122,0.5)'; ctx.fillRect(bx,by,bw,1);
+  ctx.font='13px Orbitron,monospace';
+  ctx.fillStyle=paused?'rgba(255,200,0,0.9)':'rgba(0,232,122,0.9)';
+  ctx.textAlign='right';
+  ctx.fillText(paused?'PAUSED':str, W-10, by+bh-6);
+  ctx.textAlign='left';
+}
+
+// ─── DRAW ────────────────────────────────────────────────────
+function drawGems() {
+  const byColor={};
+  gems.forEach(g=>{
+    if (g.collected) return;
+    (byColor[g.color]||(byColor[g.color]=[])).push(g);
+  });
+  for (const color in byColor) {
+    ctx.beginPath();
+    byColor[color].forEach(g=>{
+      const r=g.r;
+      ctx.moveTo(g.x,g.y-r*1.4); ctx.lineTo(g.x+r,g.y);
+      ctx.lineTo(g.x,g.y+r*1.4); ctx.lineTo(g.x-r,g.y);
+      ctx.closePath();
+    });
+    ctx.fillStyle=color; ctx.fill();
+  }
+}
+
+function drawGoal() {
+  if (allGemsCollected) {
+    ctx.fillStyle='rgba(0,232,122,0.2)';
+    ctx.fillRect(goalRect.x,goalRect.y,goalRect.w,goalRect.h);
+    ctx.strokeStyle='#00e87a'; ctx.lineWidth=1.5;
+    ctx.strokeRect(goalRect.x+0.5,goalRect.y+0.5,goalRect.w-1,goalRect.h-1);
+    ctx.font='bold 14px Orbitron,monospace'; ctx.fillStyle='#00e87a';
+    ctx.textAlign='center';
+    ctx.fillText('EXTRACT',goalRect.x+goalRect.w/2,goalRect.y+goalRect.h/2+6);
+    ctx.textAlign='left';
+  } else {
+    ctx.fillStyle='rgba(0,232,122,0.03)';
+    ctx.fillRect(goalRect.x,goalRect.y,goalRect.w,goalRect.h);
+    ctx.strokeStyle='rgba(0,232,122,0.15)'; ctx.lineWidth=1;
+    ctx.strokeRect(goalRect.x+0.5,goalRect.y+0.5,goalRect.w-1,goalRect.h-1);
+  }
+}
+
+// Vision cone: draw a triangle in front of guard
+function drawGuardCone(g) {
+  const speed=Math.sqrt(g.vx*g.vx+g.vy*g.vy);
+  if (speed===0) return;
+  const angle=Math.atan2(g.vy,g.vx);
+  const coneLen=72, coneHalf=0.42; // ~48deg half-angle
+  const ax=g.x+Math.cos(angle-coneHalf)*coneLen;
+  const ay=g.y+Math.sin(angle-coneHalf)*coneLen;
+  const bx=g.x+Math.cos(angle+coneHalf)*coneLen;
+  const by=g.y+Math.sin(angle+coneHalf)*coneLen;
+  ctx.beginPath();
+  ctx.moveTo(g.x,g.y); ctx.lineTo(ax,ay); ctx.lineTo(bx,by);
+  ctx.closePath();
+  ctx.fillStyle=g.alertMode?'rgba(255,80,30,0.22)':'rgba(255,60,60,0.1)';
+  ctx.fill();
+}
+
+function drawGuards() {
+  if (!guards.length) return;
+  // Draw cones first (behind dots)
+  guards.forEach(g=>drawGuardCone(g));
+  // Alert indicator
+  guards.forEach(g=>{
+    if (g.alertMode) {
+      ctx.font='bold 9px Orbitron,monospace';
+      ctx.fillStyle='#ff8800';
+      ctx.textAlign='center';
+      ctx.fillText('!',g.x,g.y-g.r-4);
+      ctx.textAlign='left';
+    }
+  });
+  // Bodies — single batched path
+  ctx.beginPath();
+  guards.forEach(g=>{
+    ctx.moveTo(g.x+g.r,g.y);
+    ctx.arc(g.x,g.y,g.r,0,Math.PI*2);
+  });
+  ctx.fillStyle='#cc2244'; ctx.fill();
+}
+
+function drawGhostReplay() {
+  if (!settings.ghostReplay||ghostPlayback.length===0) return;
+  const pos=ghostPlayback[Math.min(ghostFrame,ghostPlayback.length-1)];
+  if (!pos) return;
+  ctx.globalAlpha=0.28;
+  ctx.beginPath();
+  ctx.arc(pos.x,pos.y,9,0,Math.PI*2);
+  ctx.fillStyle='#00e87a';
+  ctx.fill();
+  ctx.globalAlpha=1;
+}
+
+function drawNPC() {
+  if (!npcEntity) return;
+  ctx.beginPath();
+  ctx.arc(npcEntity.x,npcEntity.y,npcEntity.r,0,Math.PI*2);
+  ctx.fillStyle='#ffaa00'; ctx.fill();
+  ctx.strokeStyle='#cc8800'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.font='bold 11px Arial'; ctx.fillStyle='#0a0e1a';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('?',npcEntity.x,npcEntity.y+0.5);
+  ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  if (player) {
+    const dx=player.x-npcEntity.x, dy=player.y-npcEntity.y;
+    if (dx*dx+dy*dy<52*52) {
+      ctx.font='8px "Share Tech Mono"'; ctx.fillStyle='#ffaa00';
+      ctx.textAlign='center';
+      ctx.fillText('[E] CHAT',npcEntity.x,npcEntity.y-npcEntity.r-8);
+      ctx.textAlign='left';
     }
   }
-  for (const gem of gems) {
-    if (gem.checkPlayerCollision(player.x, player.y, player.r)) gem.collect();
+}
+
+function draw() {
+  ctx.drawImage(staticCanvas,0,0);
+  drawGoal(); drawGems(); drawGuards(); drawGhostReplay(); drawNPC();
+  if (player) {
+    const inShadow=playerInShadow();
+    player.draw(inShadow?0.4:1);
+    // Noise radius indicator when sprinting
+    if (player.sprinting&&!inShadow) {
+      ctx.beginPath();
+      ctx.arc(player.x,player.y,NOISE_RADIUS,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,200,0,0.12)'; ctx.lineWidth=1;
+      ctx.stroke();
+    }
   }
-  if (gems.every(g => g.collected) &&
-      player.x > goalRect.x && player.x < goalRect.x + goalRect.w &&
-      player.y > goalRect.y && player.y < goalRect.y + goalRect.h) {
+  if (levelWon&&winFlash>0) {
+    ctx.fillStyle=`rgba(0,232,122,${(winFlash/70)*0.25})`;
+    ctx.fillRect(0,0,W,H); winFlash--;
+  }
+  if (dead&&deathTimer>0) {
+    ctx.fillStyle=`rgba(200,0,40,${(deathTimer/70)*0.45})`;
+    ctx.fillRect(0,0,W,H); deathTimer--;
+    if (deathTimer===0) { initLevel(level); dead=false; }
+  }
+  drawTimer();
+}
+
+// ─── GUARDS ──────────────────────────────────────────────────
+const NOISE_RADIUS=90; // sprint noise detection radius
+const ALERT_FRAMES=120; // 2 seconds at 60fps
+
+function guardWallHit(gx,gy,gr) {
+  const r=gr-1;
+  return (
+    wallSet.has(`${Math.floor((gx-r)/CELL)},${Math.floor(gy/CELL)}`)||
+    wallSet.has(`${Math.floor((gx+r)/CELL)},${Math.floor(gy/CELL)}`)||
+    wallSet.has(`${Math.floor(gx/CELL)},${Math.floor((gy-r)/CELL)}`)||
+    wallSet.has(`${Math.floor(gx/CELL)},${Math.floor((gy+r)/CELL)}`)
+  );
+}
+
+function moveGuards() {
+  if (levelWon) return;
+  guards.forEach(g=>{
+    if (!g.vx) g.vx=0; if (!g.vy) g.vy=0;
+    // Noise: if player sprinting and in range, turn toward player
+    if (player&&player.sprinting&&!playerInShadow()) {
+      const dx=player.x-g.x, dy=player.y-g.y;
+      if (dx*dx+dy*dy<NOISE_RADIUS*NOISE_RADIUS) {
+        g.alertTimer=ALERT_FRAMES;
+        g.alertMode=true;
+        // Nudge velocity toward player
+        const dist=Math.sqrt(dx*dx+dy*dy)||1;
+        const spd=Math.sqrt(g.vx*g.vx+g.vy*g.vy)||4.8;
+        g.vx=(dx/dist)*spd; g.vy=(dy/dist)*spd;
+      }
+    }
+    if (g.alertTimer>0) { g.alertTimer--; if (g.alertTimer===0) g.alertMode=false; }
+    const nx=g.x+g.vx, ny=g.y+g.vy;
+    if (!guardWallHit(nx,g.y,g.r)) g.x=nx; else g.vx*=-1;
+    if (!guardWallHit(g.x,ny,g.r)) g.y=ny; else g.vy*=-1;
+    if (g.x<g.r){g.x=g.r;g.vx=Math.abs(g.vx);}
+    if (g.x>W-g.r){g.x=W-g.r;g.vx=-Math.abs(g.vx);}
+    if (g.y<g.r){g.y=g.r;g.vy=Math.abs(g.vy);}
+    if (g.y>H-g.r){g.y=H-g.r;g.vy=-Math.abs(g.vy);}
+  });
+}
+
+// ─── VISION CONE DETECTION ───────────────────────────────────
+function playerInCone(g) {
+  const speed=Math.sqrt(g.vx*g.vx+g.vy*g.vy); if (speed===0) return false;
+  const angle=Math.atan2(g.vy,g.vx);
+  const dx=player.x-g.x, dy=player.y-g.y;
+  const dist=Math.sqrt(dx*dx+dy*dy); if (dist>72) return false;
+  const playerAngle=Math.atan2(dy,dx);
+  let diff=playerAngle-angle;
+  while (diff> Math.PI) diff-=Math.PI*2;
+  while (diff<-Math.PI) diff+=Math.PI*2;
+  return Math.abs(diff)<0.42;
+}
+
+// ─── COLLISIONS ──────────────────────────────────────────────
+function checkCollisions() {
+  if (dead||levelWon) return;
+  const pr=player.r, px=player.x, py=player.y;
+  const inShadow=playerInShadow();
+
+  for (const g of guards) {
+    const dx=px-g.x, dy=py-g.y;
+    const distSq=dx*dx+dy*dy;
+    // Body collision
+    if (distSq<(pr+g.r)*(pr+g.r)&&!inShadow) { die(); return; }
+    // Vision cone: if in cone and not shadowed → alert then catch
+    if (!inShadow&&playerInCone(g)) {
+      if (!g.alertMode) { g.alertMode=true; g.alertTimer=ALERT_FRAMES; }
+      else if (g.alertTimer<ALERT_FRAMES*0.6) { die(); return; } // 40% of timer = caught
+    }
+  }
+
+  if (!allGemsCollected) {
+    let allDone=true;
+    for (const gem of gems) {
+      if (!gem.collected) {
+        if (gem.checkCollision(px,py,pr)) gem.collect();
+        if (!gem.collected) allDone=false;
+      }
+    }
+    if (allDone) allGemsCollected=true;
+  }
+  if (allGemsCollected&&px>goalRect.x&&px<goalRect.x+goalRect.w&&py>goalRect.y&&py<goalRect.y+goalRect.h) {
     winLevel();
   }
 }
 
 function die() {
   if (dead) return;
-  dead = true; deaths++; deathTimer = 70;
-  // REMOVED: spawnParticles(player.x, player.y, '#ff3355', 28);
+  dead=true; deaths++; deathTimer=70;
+  guards.forEach(g=>{g.alertMode=false;g.alertTimer=0;});
   updateHUD();
 }
 
+// ─── WIN LEVEL ───────────────────────────────────────────────
 function winLevel() {
-  levelWon = true; winFlash = 70;
-  // REMOVED: spawnParticles(player.x, player.y, '#00e87a', 32);
-  // REMOVED: spawnParticles(goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2, '#00fff9', 20);
-  setTimeout(() => {
-    level++;
-    if (level >= LEVELS.length) {
-      showEndScreen();
-    } else {
-      initLevel(level);
-      running = true;
-      loop();
+  if (levelWon) return;
+  levelWon=true; winFlash=40;
+  running=false;
+  saveProgress(level);
+  // Save ghost if this is a new best
+  if (settings.ghostReplay&&ghostFrames.length>0) {
+    const prev=bestGhostRun;
+    if (!prev||prev.level!==level||ghostFrames.length<prev.frames.length) {
+      bestGhostRun={level, frames:ghostFrames.slice()};
+      saveBestGhost(bestGhostRun);
     }
-  }, 2000);
+  }
+  const mg=level;
+  setTimeout(()=>{ mg<3?runMinigame(mg,finishLevel):finishLevel(); },800);
 }
 
-// ─── DRAW ────────────────────────────────────────────────────
-function drawFloorGrid() {
-  ctx.strokeStyle = 'rgba(30,60,100,0.2)';
-  ctx.lineWidth = 0.5;
-  for (let x = 0; x <= W; x += CELL) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-  for (let y = 0; y <= H; y += CELL) {
-    ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y);
-    ctx.stroke();
+function finishLevel() {
+  level++;
+  if (level>=LEVELS.length) {
+    // Offer procedural bonus floor
+    showBonusFloorPrompt();
+  } else {
+    initLevel(level); running=true; loop();
   }
 }
 
-function drawGuard(g) {
-  ctx.beginPath();
-  ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
-  ctx.fillStyle = '#cc2244';
-  ctx.fill();
-  ctx.strokeStyle = '#881133';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+// ─── PROCEDURAL BONUS FLOOR ──────────────────────────────────
+function showBonusFloorPrompt() {
+  const el=document.createElement('div');
+  el.id='bonus-prompt';
+  el.style.cssText=`
+    position:fixed;inset:0;z-index:9400;background:rgba(0,0,0,0.95);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Share Tech Mono',monospace;color:#99b0cc;gap:16px;
+  `;
+  el.innerHTML=`
+    <div style="font-family:'Orbitron',monospace;font-size:0.7rem;font-weight:900;letter-spacing:0.35em;color:#ffcc00;">// BONUS FLOOR DETECTED</div>
+    <div style="font-size:0.82rem;color:#445577;text-align:center;line-height:1.8;">
+      An uncharted server room has been found.<br>
+      No guards. High risk. Score multiplier: <span style="color:#ffcc00">×1.5</span>
+    </div>
+    <div style="display:flex;gap:16px;">
+      <button id="bonus-yes" style="padding:10px 28px;font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:0.2em;background:transparent;border:1px solid rgba(255,200,0,0.4);color:#ffcc00;cursor:pointer;">[ ENTER ]</button>
+      <button id="bonus-no"  style="padding:10px 28px;font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:0.2em;background:transparent;border:1px solid rgba(100,100,100,0.4);color:#445577;cursor:pointer;">[ SKIP ]</button>
+    </div>
+  `;
+  document.getElementById('heist-shell').appendChild(el);
+  document.getElementById('bonus-yes').onclick=()=>{ el.remove(); startBonusFloor(); };
+  document.getElementById('bonus-no').onclick =()=>{ el.remove(); showEndScreen(); };
 }
 
-function drawNPCEntity() {
-  if (!npcEntity) return;
-  ctx.beginPath();
-  ctx.arc(npcEntity.x, npcEntity.y, npcEntity.r, 0, Math.PI * 2);
-  ctx.fillStyle = npcEntity.color;
-  ctx.fill();
-  ctx.strokeStyle = '#ccaa00';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // Draw a small icon/indicator
-  ctx.font = 'bold 12px Arial';
-  ctx.fillStyle = '#0a0e1a';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('?', npcEntity.x, npcEntity.y);
-}
-
-function draw() {
-  // Background
-  ctx.fillStyle = '#0a0e1a';
-  ctx.fillRect(0, 0, W, H);
-  drawFloorGrid();
-
-  // Goal zone
-  const allCollected = gems.every(g => g.collected);
-  ctx.fillStyle = allCollected ? 'rgba(0,232,122,0.22)' : 'rgba(0,232,122,0.05)';
-  ctx.fillRect(goalRect.x, goalRect.y, goalRect.w, goalRect.h);
-  ctx.strokeStyle = allCollected ? '#00e87a' : 'rgba(0,232,122,0.25)';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(goalRect.x+0.5, goalRect.y+0.5, goalRect.w-1, goalRect.h-1);
-  if (allCollected) {
-    ctx.font = 'bold 16px Orbitron, monospace'; ctx.fillStyle = '#00e87a';
-    ctx.textAlign = 'center'; ctx.fillText('EXTRACT', goalRect.x + goalRect.w/2, goalRect.y + goalRect.h/2 + 6);
+function startBonusFloor() {
+  // Generate a random level: border walls + random interior rects, random gem scatter, no guards
+  const rng=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+  const walls=buildBorderWalls(COLS,ROWS);
+  // Add 3-5 random wall blocks
+  const numBlocks=rng(3,5);
+  for (let i=0;i<numBlocks;i++) {
+    const bx=rng(2,COLS-5), by=rng(2,ROWS-5), bw=rng(2,4), bh=rng(1,3);
+    for (let r=by;r<by+bh;r++) for (let c=bx;c<bx+bw;c++) walls.push({x:c,y:r});
   }
-
-  // Walls
-  wallBarriers.forEach(b => {
-    ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.width, b.height);
-    ctx.strokeStyle = b.stroke; ctx.lineWidth = 1; ctx.strokeRect(b.x, b.y, b.width, b.height);
-    ctx.strokeStyle = b.stroke; ctx.lineWidth = 0.5;
-    for (let i = 0; i < b.width; i += 4) {
-      ctx.beginPath(); ctx.moveTo(b.x + i, b.y); ctx.lineTo(b.x + i + 2, b.y + b.height); ctx.stroke();
-    }
+  const wallSet2=new Set(walls.map(w=>`${w.x},${w.y}`));
+  // Scatter gems on open cells
+  const gemList=[];
+  const colors=['#00c8ff','#ff00cc','#ffcc00'];
+  for (let attempt=0;attempt<40&&gemList.length<16;attempt++) {
+    const gx=rng(1,COLS-2), gy=rng(1,ROWS-2);
+    if (!wallSet2.has(`${gx},${gy}`)) gemList.push({x:gx,y:gy,color:colors[gemList.length%3]});
+  }
+  // Register temporary level
+  LEVELS.push({
+    walls, start:{x:1,y:7}, goal:{x:COLS-3,y:ROWS/2-1,w:2,h:2},
+    gems:gemList, guards:[], shadowZones:[], _isBonus:true
   });
-
-    // Gems
-    gems.forEach(g => g.draw());
-
-  // Guards
-  guards.forEach(g => drawGuard(g));
-
-  // NPC Entity
-  drawNPCEntity();
-
-    // Player
-    player.draw();
-
-  // Particles (now disabled)
-  particles = particles.filter(p => p.life > 0);
-  particles.forEach(p => {
-    ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-    p.x += p.vx; p.y += p.vy;
-    p.life--; p.size *= 0.98;
-  });
-
-  // Win flash
-  if (levelWon && winFlash > 0) {
-    const alpha = (winFlash / 70) * 0.3;
-    ctx.fillStyle = `rgba(0, 232, 122, ${alpha})`;
-    ctx.fillRect(0, 0, W, H);
-    winFlash--;
-  }
-
-  // Death flash
-  if (dead && deathTimer > 0) {
-    const alpha = (deathTimer / 70) * 0.3;
-    ctx.fillStyle = `rgba(255, 51, 85, ${alpha})`;
-    ctx.fillRect(0, 0, W, H);
-    deathTimer--;
-    if (deathTimer === 0) {
-      initLevel(level);
-      dead = false;
-    }
-  }
-
-  drawTimer();
+  initLevel(LEVELS.length-1);
+  running=true; loop();
+  // Override winLevel for bonus: end screen with multiplier
+  _bonusFloorActive=true;
 }
+let _bonusFloorActive=false;
 
 // ─── LOOP ────────────────────────────────────────────────────
 function loop() {
   if (!running) return;
   t++;
   player.updateVelocity(); player.move();
-  moveGuards(); checkCollisions(); draw();
+  moveGuards(); checkCollisions();
+  // Ghost recording
+  if (settings.ghostReplay&&t%GHOST_SAMPLE===0) {
+    ghostFrames.push({x:player.x,y:player.y});
+  }
+  ghostFrame++;
+  draw();
   requestAnimationFrame(loop);
 }
 
-// ─── CUTSCENE ────────────────────────────────────────────────
+// ─── SETTINGS PANEL ──────────────────────────────────────────
+let rebindTarget=null;
+
+function openSettings() {
+  if (inSettings) return;
+  inSettings=true;
+  if (running) { paused=true; pauseStart=Date.now(); running=false; }
+  const el=document.getElementById('settings-panel');
+  if (el) { el.classList.remove('hidden'); refreshSettingsUI(); }
+}
+
+function closeSettings() {
+  inSettings=false;
+  const el=document.getElementById('settings-panel');
+  if (el) el.classList.add('hidden');
+  rebindTarget=null;
+  document.getElementById('rebind-listening')?.remove();
+  saveSettings();
+  if (paused) {
+    paused=false;
+    pausedTimeAccum+=Date.now()-pauseStart;
+    running=true; loop();
+  }
+}
+
+function refreshSettingsUI() {
+  const kr=document.getElementById('keys-rebind');
+  if (!kr) return;
+  kr.innerHTML='';
+  const actions=[
+    ['up','Move Up'],['down','Move Down'],['left','Move Left'],
+    ['right','Move Right'],['sprint','Sprint']
+  ];
+  actions.forEach(([action,label])=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);';
+    const lbl=document.createElement('span');
+    lbl.style.cssText='font-size:0.75rem;color:#445577;letter-spacing:0.1em;';
+    lbl.textContent=label;
+    const btn=document.createElement('button');
+    btn.style.cssText='font-family:"Share Tech Mono",monospace;font-size:0.78rem;background:rgba(0,20,10,0.6);border:1px solid rgba(0,232,122,0.2);color:#00e87a;padding:4px 14px;cursor:pointer;min-width:100px;text-align:center;';
+    btn.textContent=settings.keys[action];
+    btn.dataset.action=action;
+    btn.addEventListener('click',()=>startRebind(action,btn));
+    row.appendChild(lbl); row.appendChild(btn);
+    kr.appendChild(row);
+  });
+  // Ghost replay toggle
+  const ghostRow=document.createElement('div');
+  ghostRow.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 0 6px;';
+  ghostRow.innerHTML=`
+    <span style="font-size:0.75rem;color:#445577;letter-spacing:0.1em;">Ghost Replay</span>
+    <button id="ghost-toggle" style="font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.15em;padding:5px 16px;cursor:pointer;border:1px solid;background:transparent;">
+      ${settings.ghostReplay?'ON':'OFF'}
+    </button>
+  `;
+  kr.appendChild(ghostRow);
+  const gt=document.getElementById('ghost-toggle');
+  gt.style.color       =settings.ghostReplay?'#00e87a':'#445577';
+  gt.style.borderColor =settings.ghostReplay?'rgba(0,232,122,0.4)':'rgba(100,100,100,0.3)';
+  gt.addEventListener('click',()=>{
+    settings.ghostReplay=!settings.ghostReplay;
+    gt.textContent      =settings.ghostReplay?'ON':'OFF';
+    gt.style.color      =settings.ghostReplay?'#00e87a':'#445577';
+    gt.style.borderColor=settings.ghostReplay?'rgba(0,232,122,0.4)':'rgba(100,100,100,0.3)';
+    saveSettings();
+  });
+  // Reset keys
+  const resetRow=document.createElement('div');
+  resetRow.style.cssText='padding-top:12px;text-align:right;';
+  resetRow.innerHTML=`<button id="reset-keys-btn" style="font-family:'Orbitron',monospace;font-size:0.58rem;letter-spacing:0.15em;padding:5px 14px;cursor:pointer;background:transparent;border:1px solid rgba(255,50,50,0.25);color:rgba(255,80,80,0.5);">RESET TO DEFAULTS</button>`;
+  kr.appendChild(resetRow);
+  document.getElementById('reset-keys-btn').addEventListener('click',()=>{
+    settings.keys={...DEFAULT_KEYS}; saveSettings(); refreshSettingsUI();
+  });
+}
+
+function startRebind(action, btn) {
+  if (rebindTarget) return;
+  rebindTarget=action;
+  btn.textContent='PRESS A KEY...';
+  btn.style.color='#ffcc00';
+  btn.style.borderColor='rgba(255,200,0,0.4)';
+  const handler=(e)=>{
+    e.preventDefault(); e.stopPropagation();
+    if (e.key==='Escape') { rebindTarget=null; refreshSettingsUI(); window.removeEventListener('keydown',handler,true); return; }
+    settings.keys[action]=e.key;
+    rebindTarget=null;
+    saveSettings(); refreshSettingsUI();
+    window.removeEventListener('keydown',handler,true);
+  };
+  window.addEventListener('keydown',handler,true);
+}
+
+// ─── LEVEL SELECT ────────────────────────────────────────────
+function buildLevelSelectUI() {
+  const grid=document.getElementById('level-select-grid');
+  if (!grid) return;
+  grid.innerHTML='';
+  const labels=['THE LOBBY','SECURITY HUB','VAULT ANTECHAMBER','THE VAULT CORE'];
+  for (let i=0;i<4;i++) {
+    const btn=document.createElement('button');
+    const unlocked=i<levelsUnlocked;
+    btn.style.cssText=`
+      padding:12px 20px;font-family:'Orbitron',monospace;font-size:0.6rem;
+      letter-spacing:0.15em;text-align:left;cursor:${unlocked?'pointer':'default'};
+      background:transparent;border:1px solid ${unlocked?'rgba(0,232,122,0.3)':'rgba(50,70,90,0.3)'};
+      color:${unlocked?'#00e87a':'#253040'};transition:background 0.15s;
+    `;
+    btn.innerHTML=`<div>FLOOR ${i+1}</div><div style="font-size:0.5rem;color:${unlocked?'#445577':'#1a2535'};margin-top:3px;">${labels[i]||'???'}</div>`;
+    if (unlocked) {
+      btn.addEventListener('mouseenter',()=>btn.style.background='rgba(0,232,122,0.07)');
+      btn.addEventListener('mouseleave',()=>btn.style.background='transparent');
+      btn.addEventListener('click',()=>{
+        document.getElementById('level-select-panel').classList.add('hidden');
+        document.getElementById('overlay').classList.add('hidden');
+        level=i; deaths=0; timerActive=false; pausedTimeAccum=0;
+        runStartTime=Date.now(); timerActive=true;
+        initLevel(i); running=true; loop();
+      });
+    }
+    grid.appendChild(btn);
+  }
+}
+
+// ─── CUTSCENE (with typewriter) ──────────────────────────────
 export function showCutscene(scenes, onComplete) {
-  csQueue = scenes; csIndex = 0; csOnComplete = onComplete;
-  document.getElementById('cutscene').classList.remove('hidden', 'fade-out');
+  csQueue=scenes; csIndex=0; csOnComplete=onComplete;
+  document.getElementById('cutscene').classList.remove('hidden','fade-out');
   renderCutsceneSlide();
 }
 
 function renderCutsceneSlide() {
-  const scene = csQueue[csIndex];
+  const scene=csQueue[csIndex];
   document.getElementById('cs-label').textContent   = scene.label;
   document.getElementById('cs-counter').textContent = `${csIndex+1} / ${csQueue.length}`;
-  document.getElementById('cs-text').innerHTML      = scene.text;
-  const btnEl = document.getElementById('cs-btn');
-  btnEl.textContent = (csIndex === csQueue.length - 1) ? '[ EXECUTE ]' : '[ CONTINUE ]';
+  const textEl=document.getElementById('cs-text');
+  textEl.innerHTML='';
+  document.getElementById('cs-btn').textContent     = csIndex===csQueue.length-1?'[ EXECUTE ]':'[ CONTINUE ]';
+  // Strip HTML tags for typewriter (then re-insert with innerHTML on complete)
+  const fullHtml=scene.text;
+  const plainText=fullHtml.replace(/<[^>]+>/g,'');
+  let i=0;
+  if (csTypeTimer) clearInterval(csTypeTimer);
+  csTypeTimer=setInterval(()=>{
+    if (i>=plainText.length) {
+      clearInterval(csTypeTimer); csTypeTimer=null;
+      textEl.innerHTML=fullHtml; // restore full HTML with spans
+      return;
+    }
+    textEl.textContent+=plainText[i++];
+  },18);
 }
 
 function bindCutsceneBtn() {
-  document.getElementById('cs-btn').addEventListener('click', () => {
+  document.getElementById('cs-btn').addEventListener('click',()=>{
+    // If still typing, skip to end of current slide
+    if (csTypeTimer) {
+      clearInterval(csTypeTimer); csTypeTimer=null;
+      document.getElementById('cs-text').innerHTML=csQueue[csIndex].text;
+      return;
+    }
     csIndex++;
-    if (csIndex < csQueue.length) {
+    if (csIndex<csQueue.length) {
       renderCutsceneSlide();
     } else {
       document.getElementById('cutscene').classList.add('fade-out');
-      setTimeout(() => {
+      setTimeout(()=>{
         document.getElementById('cutscene').classList.add('hidden');
         if (csOnComplete) csOnComplete();
-      }, 600);
+      },600);
     }
   });
 }
 
-// ─── NPC SYSTEM BINDING ──────────────────────────────────────
-function bindNPCSystem() {
-  document.addEventListener('keydown', e => {
-    if ((e.key === 'e' || e.key === 'E') && running && level === 0) {
-      // Check if player is near NPC entity
-      if (npcEntity) {
-        const dx = player.x - npcEntity.x;
-        const dy = player.y - npcEntity.y;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        if (distance < 50) { // Interaction radius
-          toggleNPCChat();
-        }
-      }
-    }
-  });
-
-  document.getElementById('npc-send-btn').addEventListener('click', sendNPCMessage);
-  document.getElementById('npc-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendNPCMessage();
-  });
-
-  document.getElementById('npc-close-btn').addEventListener('click', closeNPCChat);
-}
-
-function toggleNPCChat() {
-  const modal = document.getElementById('npc-modal');
-  modal.classList.toggle('active');
-  if (modal.classList.contains('active')) {
-    document.getElementById('npc-input').focus();
-    running = false; // Pause game
-  } else {
-    running = true; // Resume game
-    loop();
+// ─── END SCREEN ──────────────────────────────────────────────
+export function showEndScreen() {
+  timerActive=false; running=false;
+  const totalMs=getElapsed();
+  const multiplier=_bonusFloorActive?1.5:1;
+  const displayMs=Math.round(totalMs/multiplier);
+  document.getElementById('end-time').textContent  =formatTime(displayMs);
+  document.getElementById('end-deaths').textContent=String(deaths);
+  if (_bonusFloorActive) {
+    document.getElementById('end-time').title='Score multiplied ×1.5 for bonus floor';
   }
+  document.getElementById('canvas-wrap').style.display='none';
+  document.getElementById('end-screen').classList.remove('hidden');
+  currentRunScore=leaderboard.addScore('temp_player',displayMs,deaths);
+  renderLeaderboard(currentRunScore);
+  _bonusFloorActive=false;
+  document.getElementById('end-play-again').onclick=()=>{
+    document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('canvas-wrap').style.display='';
+    // Remove bonus floor if present
+    if (LEVELS[LEVELS.length-1]?._isBonus) LEVELS.pop();
+    level=0; deaths=0; timerActive=false; pausedTimeAccum=0; currentRunScore=null;
+    initLevel(0); running=true; loop();
+  };
 }
 
+// ─── LEADERBOARD ─────────────────────────────────────────────
+function escapeHtml(text) {
+  const d=document.createElement('div'); d.textContent=text; return d.innerHTML;
+}
+function renderLeaderboard(currentScore) {
+  const topScores=leaderboard.getTop5();
+  const tbody=document.querySelector('#leaderboard-table tbody');
+  tbody.innerHTML='';
+  if (!topScores.length) {
+    const r=document.createElement('tr');
+    r.innerHTML='<td colspan="4" id="leaderboard-empty">No scores yet. Be the first!</td>';
+    tbody.appendChild(r); return;
+  }
+  topScores.forEach((score,i)=>{
+    const row=document.createElement('tr');
+    if (currentScore&&score.id===currentScore.id) row.classList.add('current-player');
+    row.innerHTML=`<td class="rank">#${i+1}</td><td class="name">${escapeHtml(score.name)}</td><td class="time">${formatTime(score.time)}</td><td class="deaths">${score.deaths}</td>`;
+    tbody.appendChild(row);
+  });
+}
+function bindLeaderboardInput() {
+  const saveBtn=document.getElementById('save-name-btn');
+  const nameEl =document.getElementById('player-name-input');
+  const wipeBtn=document.getElementById('wipe-leaderboard-btn');
+  saveBtn.addEventListener('click',()=>{
+    const name=nameEl.value.trim()||'Anonymous';
+    if (currentRunScore) {
+      currentRunScore.name=name;
+      leaderboard.entries=leaderboard.entries.map(e=>e.id===currentRunScore.id?currentRunScore:e);
+      leaderboard.saveLeaderboard(); renderLeaderboard(currentRunScore); nameEl.value='';
+    }
+  });
+  nameEl.addEventListener('keypress',e=>{if(e.key==='Enter')saveBtn.click();});
+  if (wipeBtn) wipeBtn.addEventListener('click',()=>{
+    if (confirm('Wipe all leaderboard scores?')) {
+      leaderboard.clear(); currentRunScore=null; renderLeaderboard(null);
+    }
+  });
+}
+
+// ─── NPC ─────────────────────────────────────────────────────
+function bindNPCSystem() {
+  document.addEventListener('keydown',e=>{
+    if ((e.key==='e'||e.key==='E')&&running&&level===0&&npcEntity) {
+      const dx=player.x-npcEntity.x, dy=player.y-npcEntity.y;
+      if (dx*dx+dy*dy<50*50) toggleNPCChat();
+    }
+  });
+  document.getElementById('npc-send-btn').addEventListener('click',sendNPCMessage);
+  document.getElementById('npc-input').addEventListener('keypress',e=>{if(e.key==='Enter')sendNPCMessage();});
+  document.getElementById('npc-close-btn').addEventListener('click',closeNPCChat);
+}
+function toggleNPCChat() {
+  const modal=document.getElementById('npc-modal');
+  modal.classList.toggle('active');
+  if (modal.classList.contains('active')) { document.getElementById('npc-input').focus(); running=false; }
+  else { running=true; loop(); }
+}
 function closeNPCChat() {
   document.getElementById('npc-modal').classList.remove('active');
-  running = true;
-  loop();
+  running=true; loop();
 }
-
 function sendNPCMessage() {
-  const input = document.getElementById('npc-input');
-  const userText = input.value.trim();
-  if (!userText) return;
-
-  // Add user message
-  npc.addMessage('user', userText);
-  displayMessage('user', userText);
-  input.value = '';
-
-  // Generate and display bot response
-  const response = npc.generateResponse(userText);
-  setTimeout(() => {
-    npc.addMessage('bot', response);
-    displayMessage('bot', response);
-  }, 300);
-
+  const input=document.getElementById('npc-input');
+  const text=input.value.trim(); if (!text) return;
+  npc.addMessage('user',text); displayNPCMsg('user',text); input.value='';
+  const resp=npc.generateResponse(text);
+  setTimeout(()=>{npc.addMessage('bot',resp); displayNPCMsg('bot',resp);},300);
   document.getElementById('npc-input').focus();
 }
-
-function displayMessage(sender, text) {
-  const container = document.getElementById('npc-messages');
-  const msgDiv = document.createElement('div');
-  msgDiv.className = `npc-message ${sender}`;
-  msgDiv.innerHTML = `<div class="npc-message-bubble">${escapeHtml(text)}</div>`;
-  container.appendChild(msgDiv);
-  container.scrollTop = container.scrollHeight;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// ─── LEADERBOARD INPUT BINDING ───────────────────────────────
-function bindLeaderboardInput() {
-  const saveBtn = document.getElementById('save-name-btn');
-  const nameInput = document.getElementById('player-name-input');
-  
-  saveBtn.addEventListener('click', () => {
-    const playerName = nameInput.value.trim() || 'Anonymous';
-    if (currentRunScore) {
-      currentRunScore.name = playerName;
-      leaderboard.entries = leaderboard.entries.map(e => 
-        e.id === currentRunScore.id ? currentRunScore : e
-      );
-      leaderboard.saveLeaderboard();
-      renderLeaderboard(currentRunScore);
-      nameInput.value = '';
-    }
-  });
-  
-  nameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') saveBtn.click();
-  });
+function displayNPCMsg(sender,text) {
+  const c=document.getElementById('npc-messages');
+  const d=document.createElement('div');
+  d.className=`npc-message ${sender}`;
+  d.innerHTML=`<div class="npc-message-bubble">${escapeHtml(text)}</div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
 // ─── PUBLIC API ──────────────────────────────────────────────
 export function initGame({ canvasId, introScenes, onEndingCutscene }) {
-  canvas = document.getElementById(canvasId);
-  ctx    = canvas.getContext('2d');
-  canvas.width  = W;
-  canvas.height = H;
-  _introScenes      = introScenes;
-  _onEndingCutscene = onEndingCutscene;
-  
-  // Initialize NPC and Leaderboard
-  npc = initNPCSystem();
-  leaderboard = initLeaderboard();
-  
-  bindCutsceneBtn();
-  bindNPCSystem();
-  bindLeaderboardInput();
-  
-  // Dev skip key (Z) and restart key (R)
-  window.addEventListener('keydown', e => {
-    if ((e.key === 'z' || e.key === 'Z') && running && !dead) {
-      level++; if (level >= LEVELS.length) { showEndScreen(); } else { initLevel(level); }
+  loadSettings(); loadProgress(); loadBestGhost();
+  canvas=document.getElementById(canvasId);
+  ctx=canvas.getContext('2d');
+  canvas.width=W; canvas.height=H;
+  _introScenes=introScenes; _onEndingCutscene=onEndingCutscene;
+  npc=initNPCSystem(); leaderboard=initLeaderboard();
+
+  const wrap=document.getElementById('canvas-wrap');
+  if (wrap&&!wrap.querySelector('.canvas-corner-tr')) {
+    const tr=document.createElement('span'); tr.className='canvas-corner-tr';
+    const bl=document.createElement('span'); bl.className='canvas-corner-bl';
+    wrap.appendChild(tr); wrap.appendChild(bl);
+  }
+  const titleEl=document.getElementById('title');
+  if (titleEl) titleEl.setAttribute('data-text',titleEl.textContent);
+
+  bindCutsceneBtn(); bindNPCSystem(); bindLeaderboardInput();
+
+  // ESC → settings (only when game is running)
+  window.addEventListener('keydown',e=>{
+    if (e.key==='Escape') {
+      if (inSettings) { closeSettings(); return; }
+      if (running||paused) { openSettings(); return; }
     }
-    if ((e.key === 'r' || e.key === 'R') && running) {
-      level = 0; deaths = 0; totalGems = 0; timerActive = false; currentRunScore = null;
-      initLevel(0);
+    if ((e.key==='z'||e.key==='Z')&&running&&!dead) {
+      level++; if (level>=LEVELS.length) showEndScreen(); else initLevel(level);
+    }
+    if ((e.key==='r'||e.key==='R')&&running) {
+      if (LEVELS[LEVELS.length-1]?._isBonus) LEVELS.pop();
+      level=0; deaths=0; timerActive=false; pausedTimeAccum=0; currentRunScore=null; initLevel(0);
     }
   });
+
+  // Settings button (overlay)
+  document.getElementById('settings-btn')?.addEventListener('click',()=>{
+    document.getElementById('settings-panel').classList.remove('hidden');
+    refreshSettingsUI();
+  });
+  document.getElementById('settings-close')?.addEventListener('click',()=>{
+    document.getElementById('settings-panel').classList.add('hidden');
+  });
+
+  // Level select
+  document.getElementById('level-select-btn')?.addEventListener('click',()=>{
+    buildLevelSelectUI();
+    document.getElementById('level-select-panel').classList.remove('hidden');
+  });
+  document.getElementById('level-select-close')?.addEventListener('click',()=>{
+    document.getElementById('level-select-panel').classList.add('hidden');
+  });
+
+  // In-game settings close
+  document.getElementById('ig-settings-close')?.addEventListener('click',closeSettings);
 }
 
 export function startGame() {
   document.getElementById('overlay').classList.add('hidden');
-  showCutscene(_introScenes, () => {
-    initLevel(0);
-    running = true;
-    loop();
-  });
+  showCutscene(_introScenes,()=>{ initLevel(0); running=true; loop(); });
 }

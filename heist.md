@@ -32,17 +32,23 @@ permalink: /gamify/heist
     </div>
   </div>
 
+  <!-- START OVERLAY -->
   <div id="overlay">
     <div id="overlay-title" class="green">H.E.I.S.T.EXE</div>
     <div id="overlay-sub">
       Ghost Protocol Active<br>
       Collect all gems. Reach the extraction point.<br>
-      Avoid the guards.
+      Avoid the guards. Hold SHIFT to sprint.
     </div>
     <button class="void-btn" id="start-btn">[ BEGIN INFILTRATION ]</button>
-    <div id="controls-hint">WASD / ARROW KEYS — MOVE &nbsp;|&nbsp; Z — SKIP LEVEL &nbsp;|&nbsp; R — RESTART RUN</div>
+    <div id="overlay-secondary-btns">
+      <button class="void-btn-sm" id="level-select-btn">[ LEVEL SELECT ]</button>
+      <button class="void-btn-sm" id="settings-btn">[ SETTINGS ]</button>
+    </div>
+    <div id="controls-hint">WASD / ARROWS — MOVE &nbsp;|&nbsp; SHIFT — SPRINT &nbsp;|&nbsp; ESC — SETTINGS &nbsp;|&nbsp; Z — SKIP &nbsp;|&nbsp; R — RESTART</div>
   </div>
 
+  <!-- CUTSCENE -->
   <div id="cutscene" class="hidden">
     <div id="cs-bg"></div>
     <div id="cs-content">
@@ -74,6 +80,31 @@ permalink: /gamify/heist
   <!-- NPC Hint -->
   <div id="npc-hint" style="display: none;">Press E to chat with AI</div>
 
+  <!-- SETTINGS PANEL (overlay, works from menu and ESC in-game) -->
+  <div id="settings-panel" class="hidden">
+    <div id="settings-content">
+      <div id="settings-header">
+        <div id="settings-title">// SYSTEM SETTINGS</div>
+        <button id="ig-settings-close">✕</button>
+      </div>
+      <div id="settings-section-label">KEY BINDINGS</div>
+      <div id="keys-rebind"></div>
+    </div>
+  </div>
+
+  <!-- LEVEL SELECT PANEL -->
+  <div id="level-select-panel" class="hidden">
+    <div id="level-select-content">
+      <div id="level-select-header">
+        <div id="level-select-title">// SELECT FLOOR</div>
+        <button id="level-select-close">✕</button>
+      </div>
+      <div id="level-select-sub">Complete floors to unlock subsequent ones.</div>
+      <div id="level-select-grid"></div>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
   <div id="end-screen" class="hidden">
     <div id="end-panel">
       <div id="end-title">Mission Complete</div>
@@ -88,8 +119,6 @@ permalink: /gamify/heist
           <div class="end-stat-value" id="end-deaths">0</div>
         </div>
       </div>
-      
-      <!-- LEADERBOARD SECTION -->
       <div id="leaderboard-section">
         <div id="leaderboard-title">TOP TIMES</div>
         <div id="player-name-input-group">
@@ -107,8 +136,8 @@ permalink: /gamify/heist
           </thead>
           <tbody></tbody>
         </table>
+        <button id="wipe-leaderboard-btn">[ WIPE SCORES ]</button>
       </div>
-      
       <button id="end-play-again">[ PLAY AGAIN ]</button>
     </div>
   </div>
@@ -116,25 +145,18 @@ permalink: /gamify/heist
 </div>
 
 <script type="module">
-  // Set globals needed by level files before any imports run
   window._siteBaseUrl = '{{site.baseurl}}';
-
   import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
   window._pythonURI    = pythonURI;
   window._javaURI      = javaURI;
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  // Import GameEngine modules
-  import { GameCore } from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/Game.js';
-  import GameControl from '{{site.baseurl}}/assets/js/GameEnginev1.1/essentials/GameControl.js';
-  
   import { initGame, startGame } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
-  // Import level files FIRST to populate LEVELS array before HeistLevel is used
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
-  import { showEndingCutscene }   from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
+  import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.js';
 
@@ -145,11 +167,6 @@ permalink: /gamify/heist
   });
 
   document.getElementById('start-btn').addEventListener('click', startGame);
-
-  document.getElementById('end-play-again').addEventListener('click', () => {
-    document.getElementById('end-screen').classList.add('hidden');
-    startGame();
-  });
 
   window.voidToggleFullscreen = function () {
     if (!document.fullscreenElement) {
@@ -162,7 +179,6 @@ permalink: /gamify/heist
       document.getElementById('fs-icon-compress').style.display = 'none';
     }
   };
-
   document.addEventListener('fullscreenchange', () => {
     const inFs = !!document.fullscreenElement;
     document.getElementById('fs-icon-expand').style.display  = inFs ? 'none' : '';

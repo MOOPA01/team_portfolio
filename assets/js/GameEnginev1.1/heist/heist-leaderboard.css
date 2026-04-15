@@ -119,3 +119,21 @@
   padding: 20px;
   font-style: italic;
 }
+#wipe-leaderboard-btn {
+  display: block;
+  margin: 14px auto 0;
+  background: transparent;
+  border: 1px solid rgba(255,17,85,0.3);
+  color: rgba(255,17,85,0.5);
+  padding: 7px 18px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#wipe-leaderboard-btn:hover {
+  border-color: #ff1155;
+  color: #ff1155;
+  background: rgba(255,17,85,0.07);
+}
