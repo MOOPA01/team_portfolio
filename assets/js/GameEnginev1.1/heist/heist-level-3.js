@@ -15,19 +15,13 @@ registerLevel({
   ]),
   start: { x:1, y:7 },
   goal:  { x:9, y:7, w:4, h:2 },
-  shadowZones: [
-    { x:1, y:4,  w:2, h:3 },   // left side upper
-    { x:1, y:9,  w:2, h:3 },   // left side lower
-    { x:4, y:13, w:3, h:2 },   // bottom corridor
-    { x:14,y:13, w:3, h:2 },   // bottom corridor right
-  ],
   gems: [
-    {x:5,y:4,color:'#00c8ff'},{x:10,y:4,color:'#ff00cc'},
-    {x:16,y:4,color:'#00c8ff'},{x:5,y:11,color:'#ff00cc'},
+    {x:5, y:4, color:'#00c8ff'},{x:10,y:4, color:'#ff00cc'},
+    {x:16,y:4, color:'#00c8ff'},{x:5, y:11,color:'#ff00cc'},
     {x:10,y:11,color:'#00c8ff'},{x:16,y:11,color:'#ff00cc'},
-    {x:2,y:7,color:'#00c8ff'},{x:19,y:7,color:'#ff00cc'},
-    {x:8,y:5,color:'#ff00cc'},{x:13,y:5,color:'#00c8ff'},
-    {x:8,y:10,color:'#00c8ff'},{x:13,y:10,color:'#ff00cc'},
+    {x:2, y:7, color:'#00c8ff'},{x:19,y:7, color:'#ff00cc'},
+    {x:8, y:5, color:'#ff00cc'},{x:13,y:5, color:'#00c8ff'},
+    {x:8, y:10,color:'#00c8ff'},{x:13,y:10,color:'#ff00cc'},
   ],
   guards: [
     {x:10*CELL+CELL/2,y:4*CELL+CELL/2,  vx:4.8, vy:0},

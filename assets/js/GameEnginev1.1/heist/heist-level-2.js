@@ -15,18 +15,12 @@ registerLevel({
   ]),
   start: { x:1, y:1 },
   goal:  { x:19, y:7, w:2, h:2 },
-  shadowZones: [
-    { x:1,  y:6,  w:3, h:4 },   // left mid corridor alcove
-    { x:7,  y:1,  w:2, h:3 },   // top mid hiding spot
-    { x:18, y:12, w:2, h:2 },   // bottom-right corner
-    { x:1,  y:12, w:3, h:2 },   // bottom-left corner
-  ],
   gems: [
-    {x:4,y:3,color:'#00c8ff'},{x:8,y:3,color:'#ff00cc'},
-    {x:13,y:3,color:'#00c8ff'},{x:17,y:3,color:'#ff00cc'},
-    {x:8,y:13,color:'#00c8ff'},{x:13,y:13,color:'#ff00cc'},
-    {x:2,y:8,color:'#ff00cc'},{x:20,y:8,color:'#00c8ff'},
-    {x:11,y:7,color:'#ff00cc'},
+    {x:4, y:3, color:'#00c8ff'},{x:8, y:3, color:'#ff00cc'},
+    {x:13,y:3, color:'#00c8ff'},{x:17,y:3, color:'#ff00cc'},
+    {x:8, y:13,color:'#00c8ff'},{x:13,y:13,color:'#ff00cc'},
+    {x:2, y:8, color:'#ff00cc'},{x:20,y:8, color:'#00c8ff'},
+    {x:11,y:7, color:'#ff00cc'},
   ],
   guards: [
     {x:4*CELL+CELL/2,  y:3*CELL+CELL/2,  vx:4.9, vy:0},
