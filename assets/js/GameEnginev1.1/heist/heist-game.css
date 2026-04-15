@@ -159,28 +159,10 @@
   font-family: 'Orbitron', monospace;
   font-size: 2.2rem; font-weight: 900; letter-spacing: 0.22em;
   color: var(--green);
-  animation: titlePulse 4s ease-in-out infinite;
+  text-shadow: 0 0 20px rgba(0,232,122,0.3);
   position: relative;
 }
-/* Glitch duplicate layer */
-#title::before {
-  content: attr(data-text);
-  position: absolute;
-  left: 2px; top: 0;
-  color: var(--cyan);
-  opacity: 0.15;
-  animation: glitchShift 7s infinite;
-  pointer-events: none;
-}
-#title::after {
-  content: attr(data-text);
-  position: absolute;
-  left: -2px; top: 0;
-  color: var(--pink);
-  opacity: 0.12;
-  animation: glitchShift 7s infinite 0.5s;
-  pointer-events: none;
-}
+/* glitch layers removed — clip-path animation was expensive */
 
 /* ── HUD ── */
 #hud {
@@ -210,7 +192,7 @@
   color: var(--green);
   font-size: 1.05rem;
   font-family: 'Orbitron', monospace;
-  animation: hudPulse 3s ease-in-out infinite;
+  /* hudPulse animation (text-shadow) removed — was forcing repaint every frame */
   display: inline-block;
   min-width: 1.5ch;
 }
@@ -221,8 +203,8 @@
   width: 704px;
   height: 512px;
   border: 1px solid #1e3050;
-  animation: borderGlow 5s ease-in-out infinite;
-  /* Corner decorations via pseudo */
+  /* borderGlow box-shadow animation removed — was forcing GPU recomposition every frame */
+  box-shadow: 0 0 20px rgba(0,232,122,0.06);
 }
 /* Corner brackets */
 #canvas-wrap::before,

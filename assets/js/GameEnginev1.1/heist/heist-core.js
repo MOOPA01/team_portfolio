@@ -232,19 +232,16 @@ function drawTimer() {
 // ─── GUARD VISION CONE ───────────────────────────────────────
 // Returns true if player is within this guard's cone AND has unobstructed LoS
 function playerInCone(g) {
-  const spd=Math.sqrt(g.vx*g.vx+g.vy*g.vy);
-  if (spd===0) return false;
-  const angle=Math.atan2(g.vy,g.vx);
+  if (!g._spd || g._spd === 0) return false;
   const dx=player.x-g.x, dy=player.y-g.y;
   const distSq=dx*dx+dy*dy;
-  if (distSq>80*80) return false; // max cone range
-  // Angle check
-  const playerAngle=Math.atan2(dy,dx);
-  let diff=playerAngle-angle;
-  while (diff> Math.PI) diff-=Math.PI*2;
-  while (diff<-Math.PI) diff+=Math.PI*2;
-  if (Math.abs(diff)>0.44) return false; // ~50° half-angle
-  // Wall occlusion check
+  if (distSq > 80*80) return false;
+  // Use cached cos/sin to compute dot product for angle check (no atan2)
+  // dot(guardDir, playerDir) = cosA*dx/dist + sinA*dy/dist
+  // This equals cos(angleDiff); check if > cos(0.44) ≈ 0.904
+  const dist = Math.sqrt(distSq);
+  const dot = (g._cosA * dx + g._sinA * dy) / dist;
+  if (dot < 0.904) return false; // outside ~50° half-angle cone
   return hasLineOfSight(g.x, g.y, player.x, player.y);
 }
 
@@ -284,17 +281,17 @@ function drawGoal() {
 }
 
 function drawGuardCone(g) {
-  const spd=Math.sqrt(g.vx*g.vx+g.vy*g.vy); if (spd===0) return;
-  const angle=Math.atan2(g.vy,g.vx);
+  if (!g._spd || g._spd === 0) return;
   const coneLen=80, coneHalf=0.44;
-  const ax=g.x+Math.cos(angle-coneHalf)*coneLen;
-  const ay=g.y+Math.sin(angle-coneHalf)*coneLen;
-  const bx=g.x+Math.cos(angle+coneHalf)*coneLen;
-  const by=g.y+Math.sin(angle+coneHalf)*coneLen;
+  // cos/sin of (angle ± half) — use cached angle
+  const cosL=Math.cos(g._angle-coneHalf), sinL=Math.sin(g._angle-coneHalf);
+  const cosR=Math.cos(g._angle+coneHalf), sinR=Math.sin(g._angle+coneHalf);
   ctx.beginPath();
-  ctx.moveTo(g.x,g.y); ctx.lineTo(ax,ay); ctx.lineTo(bx,by);
+  ctx.moveTo(g.x, g.y);
+  ctx.lineTo(g.x + cosL*coneLen, g.y + sinL*coneLen);
+  ctx.lineTo(g.x + cosR*coneLen, g.y + sinR*coneLen);
   ctx.closePath();
-  ctx.fillStyle=g.alertMode?'rgba(255,140,0,0.25)':'rgba(255,60,60,0.1)';
+  ctx.fillStyle = g.alertMode ? 'rgba(255,140,0,0.25)' : 'rgba(255,60,60,0.1)';
   ctx.fill();
 }
 
@@ -380,28 +377,31 @@ function moveGuards() {
   guards.forEach(g=>{
     if (!g.vx) g.vx=0; if (!g.vy) g.vy=0;
 
+    // Cache angle & trig once per frame here (reused by drawGuardCone + playerInCone)
+    const spd = Math.sqrt(g.vx*g.vx + g.vy*g.vy);
+    g._spd   = spd;
+    g._angle = (spd > 0) ? Math.atan2(g.vy, g.vx) : g._angle || 0;
+    g._cosA  = Math.cos(g._angle);
+    g._sinA  = Math.sin(g._angle);
+
     const seesPlayer = playerInCone(g);
 
     if (seesPlayer) {
-      // All guards: show alert
       if (!g.alertMode) { g.alertMode=true; g.alertTimer=ALERT_FRAMES; }
-      // Bounce guards only: once alertMode is active, chase the player
       if (g.bounce) {
         g.chasing=true;
         const dx=player.x-g.x, dy=player.y-g.y;
         const dist=Math.sqrt(dx*dx+dy*dy)||1;
-        const chaseSpeed=g.baseSpeed*1.25;
+        const chaseSpeed=g.baseSpeed*1.5;
         g.vx=(dx/dist)*chaseSpeed;
         g.vy=(dy/dist)*chaseSpeed;
       }
     } else {
-      // Faded alert countdown
       if (g.alertTimer>0) {
         g.alertTimer--;
         if (g.alertTimer===0) {
           g.alertMode=false;
           if (g.bounce&&g.chasing) {
-            // Return to diagonal bounce at base speed
             g.chasing=false;
             const diag=g.baseSpeed*0.707;
             g.vx=diag; g.vy=diag;
@@ -410,7 +410,6 @@ function moveGuards() {
       }
     }
 
-    // Move
     const nx=g.x+g.vx, ny=g.y+g.vy;
     if (!guardWallHit(nx,g.y,g.r)) g.x=nx; else { g.vx*=-1; }
     if (!guardWallHit(g.x,ny,g.r)) g.y=ny; else { g.vy*=-1; }
@@ -473,7 +472,7 @@ function finishLevel() {
   else { initLevel(level); running=true; loop(); }
 }
 
-// ─── PROCEDURAL BONUS FLOOR ──────────────────────────────────-
+// ─── PROCEDURAL BONUS FLOOR ──────────────────────────────────
 function showBonusFloorPrompt() {
   const el=document.createElement('div');
   el.id='bonus-prompt';
@@ -643,8 +642,8 @@ function bindCutsceneBtn() {
 
 // ─── END SCREEN ──────────────────────────────────────────────
 export function showEndScreen() {
-  timerActive=false; running=false;
-  const totalMs=getElapsed();
+  const totalMs = getElapsed();   // capture BEFORE timerActive is cleared
+  timerActive = false; running = false;
   const displayMs=_bonusFloorActive?Math.round(totalMs/1.5):totalMs;
   document.getElementById('end-time').textContent  =formatTime(displayMs);
   document.getElementById('end-deaths').textContent=String(deaths);
@@ -725,13 +724,15 @@ function displayNPCMsg(sender,text) {
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
-// ─── PUBLIC API ──────────────────────────────────────────────-
+// ─── PUBLIC API ──────────────────────────────────────────────
 export function initGame({ canvasId, introScenes, onEndingCutscene }) {
   loadSettings(); loadProgress(); loadBestGhost();
   canvas=document.getElementById(canvasId); ctx=canvas.getContext('2d');
   canvas.width=W; canvas.height=H;
   _introScenes=introScenes;
   npc=initNPCSystem(); leaderboard=initLeaderboard();
+  // Expose penalty hook for minigames
+  window._heistAddPenalty = (ms) => { runStartTime -= ms; };
 
   const wrap=document.getElementById('canvas-wrap');
   if (wrap&&!wrap.querySelector('.canvas-corner-tr')) {
@@ -746,7 +747,7 @@ export function initGame({ canvasId, introScenes, onEndingCutscene }) {
 
   window.addEventListener('keydown',e=>{
     if (e.key==='Escape') { if (inSettings) closeSettings(); else if (running||paused) openSettings(); return; }
-    if ((e.key==='3'||e.key==='3')&&running&&!dead) { level++; if(level>=LEVELS.length) showEndScreen(); else initLevel(level); }
+    if ((e.key==='z'||e.key==='Z')&&running&&!dead) { level++; if(level>=LEVELS.length) showEndScreen(); else initLevel(level); }
     if ((e.key==='r'||e.key==='R')&&running) {
       if (LEVELS[LEVELS.length-1]?._isBonus) LEVELS.pop();
       level=0; deaths=0; timerActive=false; pausedTimeAccum=0; currentRunScore=null; initLevel(0);

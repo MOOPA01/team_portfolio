@@ -1,74 +1,50 @@
 // =============================================================
 //  H.E.I.S.T.EXE  —  heist-minigames.js
-//  Three DOM-overlay minigames, zero canvas loop while running.
-//  runMinigame(index, onComplete) is the only public export.
 // =============================================================
 
-// ─── SHARED OVERLAY HELPERS ──────────────────────────────────
+// ─── SHARED HELPERS ──────────────────────────────────────────
 function createOverlay(id) {
   const el = document.createElement('div');
   el.id = id;
-  el.style.cssText = `
-    position:fixed;inset:0;z-index:9600;
-    background:rgba(0,0,0,0.93);
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    font-family:'Share Tech Mono',monospace;
-    color:#99b0cc;
-  `;
+  el.style.cssText = `position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;color:#99b0cc;gap:0;`;
   document.getElementById('heist-shell').appendChild(el);
   return el;
 }
-
-function removeOverlay(id) {
-  document.getElementById(id)?.remove();
-}
-
+function removeOverlay(id) { document.getElementById(id)?.remove(); }
 function mgTitle(text) {
   const h = document.createElement('div');
-  h.style.cssText = `font-family:'Orbitron',monospace;font-size:0.7rem;font-weight:900;
-    letter-spacing:0.3em;color:#00e87a;margin-bottom:6px;text-transform:uppercase;`;
-  h.textContent = text;
-  return h;
+  h.style.cssText = `font-family:'Orbitron',monospace;font-size:0.7rem;font-weight:900;letter-spacing:0.3em;color:#00e87a;margin-bottom:8px;text-transform:uppercase;`;
+  h.textContent = text; return h;
 }
 function mgSub(text) {
   const s = document.createElement('div');
-  s.style.cssText = `font-size:0.78rem;color:#445577;letter-spacing:0.1em;margin-bottom:18px;text-align:center;`;
-  s.textContent = text;
-  return s;
+  s.style.cssText = `font-size:0.75rem;color:#445577;letter-spacing:0.1em;margin-bottom:20px;text-align:center;max-width:420px;line-height:1.6;`;
+  s.textContent = text; return s;
 }
-function mgStatus(el, text, color='#99b0cc') {
-  el.style.color = color;
-  el.textContent = text;
-}
+function mgStatus(el, text, color = '#99b0cc') { el.style.color = color; el.textContent = text; }
 
 // ─── ROUTER ──────────────────────────────────────────────────
 export function runMinigame(index, onComplete) {
-  if (index === 0) runSimonSays(onComplete);
+  if      (index === 0) runSimonSays(onComplete);
   else if (index === 1) runSafeCrack(onComplete);
-  else if (index === 2) runLaserGrid(onComplete);
+  else if (index === 2) runFrequencyIntercept(onComplete);
   else onComplete();
 }
 
 // =============================================================
-//  MINIGAME 1 — SIMON SAYS (after lobby / level 1)
-//  3 rounds. 4 coloured pads. Watch the sequence, repeat it.
+//  MINIGAME 1 — SIMON SAYS
 // =============================================================
 function runSimonSays(onComplete) {
   const COLORS = [
-    { id:'R', fill:'#cc2244', lit:'#ff4466', label:'RED'   },
-    { id:'G', fill:'#007744', lit:'#00e87a', label:'GRN'   },
-    { id:'B', fill:'#003399', lit:'#3399ff', label:'BLU'   },
-    { id:'Y', fill:'#886600', lit:'#ffcc00', label:'YLW'   },
+    { id:'R', fill:'#cc2244', lit:'#ff4466', label:'RED'  },
+    { id:'G', fill:'#007744', lit:'#00e87a', label:'GRN'  },
+    { id:'B', fill:'#003399', lit:'#3399ff', label:'BLU'  },
+    { id:'Y', fill:'#886600', lit:'#ffcc00', label:'YLW'  },
   ];
   const ROUNDS = 3;
-  let sequence = [];
-  let playerIdx = 0;
-  let locked = true; // no input during playback
+  let sequence = [], playerIdx = 0, locked = true;
 
   const overlay = createOverlay('mg-simon');
-
-  // Build UI
   overlay.appendChild(mgTitle('// SIGNAL PROTOCOL'));
   overlay.appendChild(mgSub('Memorise the guard frequency pattern. Repeat it back.'));
 
@@ -79,18 +55,11 @@ function runSimonSays(onComplete) {
 
   const grid = document.createElement('div');
   grid.style.cssText = `display:grid;grid-template-columns:1fr 1fr;gap:12px;`;
-
   const btns = {};
   COLORS.forEach(c => {
     const btn = document.createElement('button');
-    btn.style.cssText = `
-      width:110px;height:90px;border:2px solid rgba(255,255,255,0.1);
-      background:${c.fill};cursor:pointer;
-      font-family:'Orbitron',monospace;font-size:0.6rem;letter-spacing:0.2em;
-      color:rgba(255,255,255,0.4);transition:background 0.08s;
-    `;
+    btn.style.cssText = `width:110px;height:90px;border:2px solid rgba(255,255,255,0.1);background:${c.fill};cursor:pointer;font-family:'Orbitron',monospace;font-size:0.6rem;letter-spacing:0.2em;color:rgba(255,255,255,0.4);transition:background 0.08s;`;
     btn.textContent = c.label;
-    btn.dataset.id = c.id;
     btn.addEventListener('click', () => onPadClick(c.id));
     grid.appendChild(btn);
     btns[c.id] = { btn, c };
@@ -106,7 +75,6 @@ function runSimonSays(onComplete) {
     btn.style.background = on ? c.lit : c.fill;
     btn.style.color = on ? '#000' : 'rgba(255,255,255,0.4)';
   }
-
   function playSequence(seq, cb) {
     locked = true;
     let i = 0;
@@ -119,10 +87,8 @@ function runSimonSays(onComplete) {
     }
     setTimeout(next, 600);
   }
-
   function startRound() {
-    const colorIds = COLORS.map(c => c.id);
-    sequence.push(colorIds[Math.floor(Math.random()*4)]);
+    sequence.push(COLORS[Math.floor(Math.random()*4)].id);
     playerIdx = 0;
     roundEl.textContent = `ROUND ${sequence.length} / ${ROUNDS}`;
     playSequence(sequence, () => {
@@ -130,7 +96,6 @@ function runSimonSays(onComplete) {
       mgStatus(statusEl, 'YOUR TURN — REPEAT THE SEQUENCE', '#00e87a');
     });
   }
-
   function onPadClick(id) {
     if (locked) return;
     lightPad(id, true);
@@ -154,61 +119,103 @@ function runSimonSays(onComplete) {
       }
     }
   }
-
   startRound();
 }
 
 // =============================================================
-//  MINIGAME 2 — SAFE CRACK (after level 2)
-//  Mastermind-lite: guess a 4-digit code (digits 1-6).
-//  Feedback: ● correct digit+position, ○ correct digit wrong pos.
-//  Max 6 attempts. Each failed attempt costs +5s (penalty text).
+//  MINIGAME 2 — SAFE CRACK (Mastermind)
+//  Fixed: secret is frozen at creation, processing lock prevents
+//  double-submit, scoring uses a clean pure function.
 // =============================================================
 function runSafeCrack(onComplete) {
   const CODE_LEN = 4;
-  const DIGITS   = [1,2,3,4,5,6];
   const MAX_TRIES = 6;
 
-  // Generate secret
-  const secret = Array.from({length:CODE_LEN}, () => DIGITS[Math.floor(Math.random()*DIGITS.length)]);
+  // Generate secret ONCE and freeze it
+  const secret = Object.freeze(
+    Array.from({length: CODE_LEN}, () => Math.floor(Math.random() * 6) + 1)
+  );
   let attempts = 0;
-  let timePenalty = 0;
+  let processing = false; // lock to prevent double-submit
 
+  // ─── Pure scoring function ────────────────────────────────
+  // Returns {bulls, cows} for a guess against the secret.
+  // Bulls = correct digit in correct position.
+  // Cows  = correct digit in wrong position.
+  function scoreGuess(guess, secret) {
+    let bulls = 0;
+    const secretLeft = [], guessLeft = [];
+    for (let i = 0; i < CODE_LEN; i++) {
+      if (guess[i] === secret[i]) {
+        bulls++;
+      } else {
+        secretLeft.push(secret[i]);
+        guessLeft.push(guess[i]);
+      }
+    }
+    // Count cows from the unmatched digits
+    let cows = 0;
+    const used = new Array(secretLeft.length).fill(false);
+    for (let i = 0; i < guessLeft.length; i++) {
+      for (let j = 0; j < secretLeft.length; j++) {
+        if (!used[j] && guessLeft[i] === secretLeft[j]) {
+          cows++;
+          used[j] = true;
+          break;
+        }
+      }
+    }
+    return { bulls, cows };
+  }
+
+  // ─── Build UI ─────────────────────────────────────────────
   const overlay = createOverlay('mg-safe');
   overlay.appendChild(mgTitle('// VAULT COMBINATION'));
-  overlay.appendChild(mgSub('Deduce the 4-digit code (digits 1–6). ● = right place  ○ = right digit'));
+  overlay.appendChild(mgSub('Deduce the 4-digit code (digits 1–6).  ● = right place  ○ = right digit, wrong place'));
 
   const statusEl = document.createElement('div');
-  statusEl.style.cssText = `font-size:0.8rem;letter-spacing:0.1em;margin-bottom:12px;min-height:20px;color:#99b0cc;`;
+  statusEl.style.cssText = `font-size:0.8rem;letter-spacing:0.1em;margin-bottom:12px;min-height:20px;color:#99b0cc;text-align:center;`;
   overlay.appendChild(statusEl);
 
-  // History board
   const board = document.createElement('div');
-  board.style.cssText = `display:flex;flex-direction:column;gap:5px;margin-bottom:14px;min-height:160px;width:280px;`;
+  board.style.cssText = `display:flex;flex-direction:column;gap:4px;margin-bottom:14px;min-height:150px;width:340px;font-size:0.88rem;overflow-y:auto;max-height:200px;`;
   overlay.appendChild(board);
 
-  // Input row
   const inputRow = document.createElement('div');
   inputRow.style.cssText = `display:flex;gap:8px;align-items:center;`;
 
   const inputs = [];
-  for (let i = 0; i < CODE_LEN; i++) {
+  for (let pos = 0; pos < CODE_LEN; pos++) {
     const inp = document.createElement('input');
-    inp.type = 'text'; inp.maxLength = 1; inp.inputMode = 'numeric';
+    inp.type = 'text';
+    inp.maxLength = 1;
+    inp.inputMode = 'numeric';
     inp.style.cssText = `
-      width:40px;height:44px;text-align:center;
-      background:#0d1828;border:1px solid #1e2d4a;
-      color:#00e87a;font-size:1.4rem;font-family:'Orbitron',monospace;
-      outline:none;
+      width:56px;height:60px;text-align:center;
+      background:#0a1628;border:2px solid #1e3a5a;
+      color:#00e87a;font-size:1.8rem;font-family:'Orbitron',monospace;
+      outline:none;caret-color:transparent;
+      line-height:60px;padding:0;box-sizing:border-box;
+      border-radius:0;-webkit-appearance:none;
     `;
-    inp.addEventListener('input', () => {
-      const v = inp.value.replace(/[^1-6]/g,'');
-      inp.value = v ? v[v.length-1] : '';
-      if (inp.value && i < CODE_LEN-1) inputs[i+1].focus();
+    inp.addEventListener('focus',  function() { this.style.borderColor='#00e87a'; this.style.background='#0d2218'; });
+    inp.addEventListener('blur',   function() { this.style.borderColor='#1e3a5a'; this.style.background='#0a1628'; });
+    // Only allow digits 1-6, auto-advance
+    inp.addEventListener('input', function() {
+      const v = this.value.replace(/[^1-6]/g, '');
+      this.value = v ? v[v.length - 1] : '';
+      if (this.value && pos < CODE_LEN - 1) inputs[pos + 1].focus();
     });
-    inp.addEventListener('keydown', e => {
-      if (e.key==='Backspace' && !inp.value && i > 0) inputs[i-1].focus();
-      if (e.key==='Enter') guessBtn.click();
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Backspace' && !this.value && pos > 0) {
+        e.preventDefault();
+        inputs[pos - 1].focus();
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        doSubmit();
+      }
     });
     inputRow.appendChild(inp);
     inputs.push(inp);
@@ -216,197 +223,322 @@ function runSafeCrack(onComplete) {
 
   const guessBtn = document.createElement('button');
   guessBtn.textContent = 'CHECK';
-  guessBtn.style.cssText = `
-    padding:10px 16px;background:transparent;
-    border:1px solid rgba(0,232,122,0.4);color:#00e87a;
-    font-family:'Orbitron',monospace;font-size:0.65rem;
-    letter-spacing:0.15em;cursor:pointer;
-  `;
+  guessBtn.style.cssText = `padding:10px 18px;background:transparent;border:1px solid rgba(0,232,122,0.4);color:#00e87a;font-family:'Orbitron',monospace;font-size:0.65rem;letter-spacing:0.15em;cursor:pointer;white-space:nowrap;`;
+  guessBtn.addEventListener('click', function(e) { e.preventDefault(); doSubmit(); });
   inputRow.appendChild(guessBtn);
   overlay.appendChild(inputRow);
 
-  const penaltyEl = document.createElement('div');
-  penaltyEl.style.cssText = `margin-top:10px;font-size:0.7rem;color:#ff4466;letter-spacing:0.1em;min-height:18px;`;
-  overlay.appendChild(penaltyEl);
+  const hintEl = document.createElement('div');
+  hintEl.style.cssText = `margin-top:8px;font-size:0.68rem;color:#2a3a52;letter-spacing:0.08em;`;
+  hintEl.textContent = `${MAX_TRIES} attempts remaining`;
+  overlay.appendChild(hintEl);
 
-  guessBtn.addEventListener('click', submitGuess);
-  inputs[0].focus();
+  setTimeout(() => inputs[0].focus(), 80);
 
-  function submitGuess() {
-    const guess = inputs.map(i => parseInt(i.value));
-    if (guess.some(isNaN)) { mgStatus(statusEl,'ENTER ALL 4 DIGITS','#ffcc00'); return; }
+  // ─── Submit logic ─────────────────────────────────────────
+  function doSubmit() {
+    if (processing) return;
+
+    // Read current values
+    const guessVals = inputs.map(inp => parseInt(inp.value, 10));
+
+    // Validate all filled
+    if (guessVals.some(v => isNaN(v) || v < 1 || v > 6)) {
+      mgStatus(statusEl, 'ENTER ALL 4 DIGITS (1–6)', '#ffcc00');
+      return;
+    }
+
+    processing = true;
+    guessBtn.disabled = true;
     attempts++;
 
-    // Score
-    let bulls = 0, cows = 0;
-    const sCount = {}, gCount = {};
-    for (let i=0; i<CODE_LEN; i++) {
-      if (guess[i]===secret[i]) { bulls++; }
-      else {
-        sCount[secret[i]] = (sCount[secret[i]]||0)+1;
-        gCount[guess[i]]  = (gCount[guess[i]]||0)+1;
-      }
-    }
-    for (const d in gCount) cows += Math.min(gCount[d], sCount[d]||0);
+    const { bulls, cows } = scoreGuess(guessVals, secret);
 
-    // Add row to board
+    // Append row to history board
     const row = document.createElement('div');
-    row.style.cssText = `display:flex;gap:6px;align-items:center;font-size:0.85rem;`;
-    row.innerHTML = `<span style="color:#445577;min-width:28px">#${attempts}</span>
-      <span style="color:#d0e0f0;letter-spacing:0.18em">${guess.join(' ')}</span>
-      <span style="color:#00e87a;margin-left:6px">${'●'.repeat(bulls)}${'○'.repeat(cows)}${'·'.repeat(CODE_LEN-bulls-cows)}</span>`;
+    row.style.cssText = `display:flex;gap:10px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);`;
+    const attemptStr = String(attempts).padStart(2, ' ');
+    const guessStr   = guessVals.join(' ');
+    const bullDots   = '●'.repeat(bulls);
+    const cowDots    = '○'.repeat(cows);
+    const emptyDots  = '·'.repeat(CODE_LEN - bulls - cows);
+    row.innerHTML = `
+      <span style="color:#2a3a52;font-size:0.75rem;min-width:22px;">#${attemptStr}</span>
+      <span style="color:#d0e0f0;letter-spacing:0.2em;min-width:80px;">${guessStr}</span>
+      <span style="color:#00e87a;letter-spacing:0.08em;font-size:1rem;">${bullDots}${cowDots}<span style="color:#2a3a52">${emptyDots}</span></span>
+    `;
     board.appendChild(row);
+    board.scrollTop = board.scrollHeight;
 
-    inputs.forEach(i => i.value='');
-    inputs[0].focus();
-
+    // Win condition
     if (bulls === CODE_LEN) {
-      guessBtn.disabled = true;
-      mgStatus(statusEl,'VAULT OPEN — ACCESS GRANTED','#00e87a');
-      penaltyEl.textContent = '';
+      mgStatus(statusEl, 'VAULT OPEN — ACCESS GRANTED', '#00e87a');
+      hintEl.textContent = '';
       setTimeout(() => { removeOverlay('mg-safe'); onComplete(); }, 1000);
       return;
     }
+
+    // Out of attempts
     if (attempts >= MAX_TRIES) {
-      // Reveal and continue anyway (don't block progress, just shame them)
       guessBtn.disabled = true;
-      mgStatus(statusEl,`CODE WAS ${secret.join('-')} — BRUTE FORCED +30s`,'#ff4466');
-      penaltyEl.textContent = '';
-      // Add 30s penalty to run timer by rewinding start time
-      window._heistTimePenalty = (window._heistTimePenalty||0) + 30000;
-      setTimeout(() => { removeOverlay('mg-safe'); onComplete(); }, 1600);
+      mgStatus(statusEl, `FAILED — CODE WAS: ${secret.join(' ')} — +30s PENALTY`, '#ff4466');
+      hintEl.textContent = '';
+      // Time penalty: add 30s to the run timer offset
+      if (window._heistAddPenalty) window._heistAddPenalty(30000);
+      setTimeout(() => { removeOverlay('mg-safe'); onComplete(); }, 2000);
       return;
     }
+
+    // Continue
     const left = MAX_TRIES - attempts;
-    mgStatus(statusEl,`${bulls}● ${cows}○  —  ${left} ATTEMPT${left===1?'':'S'} LEFT`,'#99b0cc');
+    mgStatus(statusEl, `${bulls}● correct position  ${cows}○ correct digit  —  ${left} left`, '#99b0cc');
+    hintEl.textContent = `${left} attempt${left === 1 ? '' : 's'} remaining`;
+
+    // Clear inputs and re-enable
+    inputs.forEach(inp => { inp.value = ''; });
+    inputs[0].focus();
+    guessBtn.disabled = false;
+    processing = false;
   }
 }
 
 // =============================================================
-//  MINIGAME 3 — LASER GRID (after level 3)
-//  Navigate GHOST through a static laser grid on a 9x7 tile map.
-//  Arrow keys only. Reach the EXIT tile. No enemies.
-//  Touch a laser = restart from start (no time penalty).
+//  MINIGAME 3 — FREQUENCY INTERCEPT
+//  Theme: GHOST intercepts 3 guard radio frequencies before
+//  the security team notices the tap.
+//
+//  Mechanic: A dial sweeps a 0–999 range. Left/right arrows
+//  move the needle. Three hidden target frequencies must be
+//  found. When within ±8 of a target, "SIGNAL LOCK" flashes —
+//  hold still for 1.5s to capture it. Repeat for all 3.
+//  A "warm/cold" bar guides the player.
 // =============================================================
-function runLaserGrid(onComplete) {
-  // Map: 0=floor, 1=wall, 2=laser(H), 3=laser(V), 4=start, 5=exit
-  const MAP = [
-    [1,1,1,1,1,1,1,1,1],
-    [1,4,0,0,1,0,0,0,1],
-    [1,0,1,0,2,0,1,0,1],
-    [1,0,0,0,1,0,0,0,1],
-    [1,0,1,3,0,0,1,0,1],
-    [1,0,0,0,0,0,0,5,1],
-    [1,1,1,1,1,1,1,1,1],
-  ];
-  const ROWS = MAP.length, COLS = MAP[0].length;
-  const TILE = 56;
-  const W = COLS*TILE, H = ROWS*TILE;
+function runFrequencyIntercept(onComplete) {
+  // Generate 3 distinct targets spread across the range
+  function randTarget() { return Math.floor(Math.random() * 880) + 60; } // 60–940
+  const targets = [];
+  while (targets.length < 3) {
+    const t = randTarget();
+    if (targets.every(x => Math.abs(x - t) > 80)) targets.push(t);
+  }
+  targets.sort((a, b) => a - b);
 
-  let px = 1, py = 1; // start grid position (col, row)
-  // Find start
-  outer: for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if(MAP[r][c]===4){py=r;px=c;break outer;}
+  let dial    = 500;       // current dial position 0–999
+  let locked  = 0;         // number captured so far
+  let lockTimer = 0;       // frames holding in lock zone
+  const LOCK_HOLD   = 90; // frames to hold (~1.5s at 60fps)
+  const SNAP_RANGE  = 8;  // ±8 dial units = "lock zone"
+  const WARM_RANGE  = 80; // ±80 = "warm"
+  const DIAL_STEP   = 3;
+  const CAPTURED_TARGETS = new Set();
 
-  const overlay = createOverlay('mg-laser');
-  overlay.appendChild(mgTitle('// LASER GRID — VAULT CORRIDOR'));
-  overlay.appendChild(mgSub('Navigate to the exit. Avoid laser beams.  ARROW KEYS'));
+  let animId = null;
+  const keys = {};
 
-  const canvasEl = document.createElement('canvas');
-  canvasEl.width = W; canvasEl.height = H;
-  canvasEl.style.cssText = `border:1px solid #1e2d4a;display:block;`;
-  overlay.appendChild(canvasEl);
-  const lctx = canvasEl.getContext('2d');
+  const overlay = createOverlay('mg-freq');
+  overlay.appendChild(mgTitle('// FREQUENCY INTERCEPT'));
+  overlay.appendChild(mgSub('Sweep the dial to intercept guard communications. Hold still on a signal to lock it. Capture all 3 frequencies.'));
 
+  // Status line
   const statusEl = document.createElement('div');
-  statusEl.style.cssText = `margin-top:10px;font-size:0.75rem;color:#445577;letter-spacing:0.1em;min-height:18px;`;
+  statusEl.style.cssText = `font-size:0.82rem;letter-spacing:0.12em;margin-bottom:18px;min-height:20px;color:#99b0cc;`;
+  statusEl.textContent = `CHANNELS REMAINING: 3`;
   overlay.appendChild(statusEl);
 
+  // Canvas for the dial visualisation
+  const W = 500, H = 160;
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  cvs.style.cssText = `display:block;border:1px solid #1a2840;`;
+  overlay.appendChild(cvs);
+  const c = cvs.getContext('2d');
+
+  // Proximity/warmth bar
+  const barWrap = document.createElement('div');
+  barWrap.style.cssText = `width:500px;height:8px;background:#0a1020;margin-top:6px;border:1px solid #1a2840;position:relative;overflow:hidden;`;
+  const barFill = document.createElement('div');
+  barFill.style.cssText = `height:100%;width:0%;background:#445577;transition:background 0.1s;`;
+  barWrap.appendChild(barFill);
+  overlay.appendChild(barWrap);
+
+  // Lock progress bar
+  const lockWrap = document.createElement('div');
+  lockWrap.style.cssText = `width:500px;height:6px;background:#0a1020;margin-top:4px;border:1px solid #1a2840;`;
+  const lockFill = document.createElement('div');
+  lockFill.style.cssText = `height:100%;width:0%;background:#00e87a;transition:none;`;
+  lockWrap.appendChild(lockFill);
+  overlay.appendChild(lockWrap);
+
+  // Hint
+  const hintEl = document.createElement('div');
+  hintEl.style.cssText = `margin-top:10px;font-size:0.65rem;color:#2a3a52;letter-spacing:0.12em;`;
+  hintEl.textContent = '◄ ► ARROW KEYS TO SWEEP DIAL';
+  overlay.appendChild(hintEl);
+
+  // ─── Render ───────────────────────────────────────────────
   function render() {
-    lctx.fillStyle = '#000';
-    lctx.fillRect(0,0,W,H);
-    for (let r=0;r<ROWS;r++) {
-      for (let c=0;c<COLS;c++) {
-        const t = MAP[r][c];
-        const tx = c*TILE, ty = r*TILE;
-        if (t===1) {
-          lctx.fillStyle = '#0d1828';
-          lctx.fillRect(tx,ty,TILE,TILE);
-          lctx.strokeStyle = 'rgba(0,180,100,0.2)';
-          lctx.lineWidth=1;
-          lctx.strokeRect(tx+0.5,ty+0.5,TILE-1,TILE-1);
-        } else if (t===2) {
-          // Horizontal laser
-          lctx.fillStyle = 'rgba(255,30,30,0.12)';
-          lctx.fillRect(tx,ty,TILE,TILE);
-          lctx.fillStyle = '#ff2222';
-          lctx.fillRect(tx, ty+TILE/2-2, TILE, 4);
-        } else if (t===3) {
-          // Vertical laser
-          lctx.fillStyle = 'rgba(255,30,30,0.12)';
-          lctx.fillRect(tx,ty,TILE,TILE);
-          lctx.fillStyle = '#ff2222';
-          lctx.fillRect(tx+TILE/2-2, ty, 4, TILE);
-        } else if (t===5) {
-          // Exit
-          lctx.fillStyle = 'rgba(0,232,122,0.15)';
-          lctx.fillRect(tx,ty,TILE,TILE);
-          lctx.strokeStyle = '#00e87a';
-          lctx.lineWidth=2;
-          lctx.strokeRect(tx+1,ty+1,TILE-2,TILE-2);
-          lctx.font='bold 10px Orbitron,monospace';
-          lctx.fillStyle='#00e87a';
-          lctx.textAlign='center';
-          lctx.textBaseline='middle';
-          lctx.fillText('EXIT',tx+TILE/2,ty+TILE/2);
-          lctx.textAlign='left'; lctx.textBaseline='alphabetic';
-        } else {
-          lctx.fillStyle = '#060a14';
-          lctx.fillRect(tx,ty,TILE,TILE);
-        }
-      }
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+
+    // Frequency scale labels
+    c.font = '9px "Share Tech Mono",monospace'; c.fillStyle = '#2a3a52';
+    for (let f = 0; f <= 1000; f += 100) {
+      const x = (f / 1000) * W;
+      c.textAlign = 'center';
+      c.fillText(f, x, H - 6);
+      c.beginPath(); c.moveTo(x, H - 20); c.lineTo(x, H - 14);
+      c.strokeStyle = '#1a2840'; c.lineWidth = 1; c.stroke();
     }
-    // Grid lines
-    lctx.strokeStyle = 'rgba(20,40,80,0.3)';
-    lctx.lineWidth=0.5;
-    lctx.beginPath();
-    for (let c=0;c<=COLS;c++){lctx.moveTo(c*TILE,0);lctx.lineTo(c*TILE,H);}
-    for (let r=0;r<=ROWS;r++){lctx.moveTo(0,r*TILE);lctx.lineTo(W,r*TILE);}
-    lctx.stroke();
-    // Player
-    lctx.beginPath();
-    lctx.arc(px*TILE+TILE/2, py*TILE+TILE/2, TILE*0.28, 0, Math.PI*2);
-    lctx.fillStyle='#00e87a';
-    lctx.fill();
+
+    // Draw captured targets as solid ticks
+    CAPTURED_TARGETS.forEach(t => {
+      const tx = (t / 1000) * W;
+      c.fillStyle = '#00e87a';
+      c.fillRect(tx - 2, 20, 4, H - 44);
+      c.font = '8px "Share Tech Mono"'; c.fillStyle = '#00e87a';
+      c.textAlign = 'center'; c.fillText('LOCKED', tx, 16);
+    });
+
+    // Warmth background glow behind needle
+    const nearestDist = getNearestDist();
+    if (nearestDist < WARM_RANGE && !isInLockZone()) {
+      const alpha = (1 - nearestDist / WARM_RANGE) * 0.15;
+      const nx = (dial / 1000) * W;
+      const grad = c.createLinearGradient(nx - 60, 0, nx + 60, 0);
+      grad.addColorStop(0, 'rgba(255,200,0,0)');
+      grad.addColorStop(0.5, `rgba(255,200,0,${alpha})`);
+      grad.addColorStop(1, 'rgba(255,200,0,0)');
+      c.fillStyle = grad; c.fillRect(0, 0, W, H);
+    }
+
+    // Lock zone flash
+    if (isInLockZone()) {
+      const nx = (dial / 1000) * W;
+      const flash = Math.sin(Date.now() * 0.015) * 0.5 + 0.5;
+      c.fillStyle = `rgba(0,232,122,${0.08 + flash * 0.12})`;
+      c.fillRect(nx - 20, 0, 40, H);
+    }
+
+    // Needle
+    const nx = (dial / 1000) * W;
+    const inLock = isInLockZone();
+    c.strokeStyle = inLock ? '#00e87a' : '#cc2244';
+    c.lineWidth = 2;
+    c.beginPath(); c.moveTo(nx, 10); c.lineTo(nx, H - 24); c.stroke();
+    // Needle head
+    c.beginPath(); c.arc(nx, 10, 5, 0, Math.PI * 2);
+    c.fillStyle = inLock ? '#00e87a' : '#cc2244'; c.fill();
+
+    // Frequency readout
+    c.font = 'bold 18px "Orbitron",monospace';
+    c.fillStyle = inLock ? '#00e87a' : '#ff6644';
+    c.textAlign = 'center';
+    c.fillText(String(dial).padStart(3, '0') + ' MHz', W / 2, 56);
+    c.textAlign = 'left';
   }
 
-  function tryMove(dc, dr) {
-    const nc = px+dc, nr = py+dr;
-    if (nr<0||nr>=ROWS||nc<0||nc>=COLS) return;
-    const t = MAP[nr][nc];
-    if (t===1) return; // wall
-    px=nc; py=nr;
+  function getNearestDist() {
+    let min = Infinity;
+    for (const t of targets) {
+      if (CAPTURED_TARGETS.has(t)) continue;
+      min = Math.min(min, Math.abs(dial - t));
+    }
+    return min;
+  }
+
+  function isInLockZone() {
+    for (const t of targets) {
+      if (CAPTURED_TARGETS.has(t)) continue;
+      if (Math.abs(dial - t) <= SNAP_RANGE) return true;
+    }
+    return false;
+  }
+
+  function getCurrentTarget() {
+    for (const t of targets) {
+      if (!CAPTURED_TARGETS.has(t) && Math.abs(dial - t) <= SNAP_RANGE) return t;
+    }
+    return null;
+  }
+
+  // ─── Game loop ────────────────────────────────────────────
+  let moving = false;
+  function gameLoop() {
+    // Move dial
+    const wasMoving = moving;
+    if (keys['ArrowLeft'])  { dial = Math.max(0,   dial - DIAL_STEP); moving = true; }
+    else if (keys['ArrowRight']) { dial = Math.min(999, dial + DIAL_STEP); moving = true; }
+    else moving = false;
+
+    // Warm/cold bar
+    const dist = getNearestDist();
+    if (dist < WARM_RANGE) {
+      const pct = Math.max(0, 100 - (dist / WARM_RANGE) * 100);
+      barFill.style.width = pct + '%';
+      barFill.style.background = dist < SNAP_RANGE * 3 ? '#ffcc00' : dist < SNAP_RANGE * 6 ? '#ff8800' : '#445577';
+    } else {
+      barFill.style.width = '0%';
+      barFill.style.background = '#445577';
+    }
+
+    // Lock progress
+    if (isInLockZone() && !moving) {
+      lockTimer++;
+      lockFill.style.width = (lockTimer / LOCK_HOLD * 100) + '%';
+      if (lockTimer >= LOCK_HOLD) {
+        const t = getCurrentTarget();
+        if (t !== null) {
+          CAPTURED_TARGETS.add(t);
+          lockTimer = 0;
+          lockFill.style.width = '0%';
+          const remaining = targets.length - CAPTURED_TARGETS.size;
+          if (remaining === 0) {
+            mgStatus(statusEl, 'ALL FREQUENCIES LOCKED — COMM INTERCEPT ACTIVE', '#00e87a');
+            hintEl.textContent = '';
+            barFill.style.width = '100%'; barFill.style.background = '#00e87a';
+            cancelAnimationFrame(animId);
+            window.removeEventListener('keydown', keyHandler);
+            window.removeEventListener('keyup',   keyUpHandler);
+            render();
+            setTimeout(() => { removeOverlay('mg-freq'); onComplete(); }, 1200);
+            return;
+          } else {
+            mgStatus(statusEl, `LOCKED — ${remaining} CHANNEL${remaining === 1 ? '' : 'S'} REMAINING`, '#00e87a');
+          }
+        }
+      }
+    } else {
+      lockTimer = Math.max(0, lockTimer - 2); // decay quickly when moving
+      lockFill.style.width = (lockTimer / LOCK_HOLD * 100) + '%';
+    }
+
+    // Status hint
+    if (isInLockZone()) {
+      hintEl.textContent = 'SIGNAL DETECTED — HOLD STILL TO LOCK';
+      hintEl.style.color = '#00e87a';
+    } else if (dist < WARM_RANGE * 0.4) {
+      hintEl.style.color = '#ffcc00';
+      hintEl.textContent = '▲ SIGNAL NEARBY';
+    } else if (dist < WARM_RANGE * 0.75) {
+      hintEl.style.color = '#ff8800';
+      hintEl.textContent = '~ WARM';
+    } else {
+      hintEl.style.color = '#2a3a52';
+      hintEl.textContent = '◄ ► ARROW KEYS TO SWEEP DIAL';
+    }
+
     render();
-    if (t===2||t===3) {
-      // Hit laser — reset
-      mgStatus(statusEl,'LASER DETECTED — REROUTING...','#ff4466');
-      outer: for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(MAP[r][c]===4){py=r;px=c;break outer;}
-      setTimeout(() => { mgStatus(statusEl,''); render(); }, 700);
-      return;
-    }
-    if (t===5) {
-      window.removeEventListener('keydown', keyHandler);
-      mgStatus(statusEl,'EXIT REACHED — EXTRACTION COMPLETE','#00e87a');
-      setTimeout(() => { removeOverlay('mg-laser'); onComplete(); }, 900);
-    }
+    animId = requestAnimationFrame(gameLoop);
   }
 
   function keyHandler(e) {
-    if (e.key==='ArrowUp')    { e.preventDefault(); tryMove(0,-1); }
-    if (e.key==='ArrowDown')  { e.preventDefault(); tryMove(0, 1); }
-    if (e.key==='ArrowLeft')  { e.preventDefault(); tryMove(-1,0); }
-    if (e.key==='ArrowRight') { e.preventDefault(); tryMove( 1,0); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault(); keys[e.key] = true;
+    }
   }
+  function keyUpHandler(e) { keys[e.key] = false; }
   window.addEventListener('keydown', keyHandler);
+  window.addEventListener('keyup',   keyUpHandler);
 
-  render();
+  mgStatus(statusEl, 'CHANNELS REMAINING: 3', '#99b0cc');
+  animId = requestAnimationFrame(gameLoop);
 }
