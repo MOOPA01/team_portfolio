@@ -725,7 +725,7 @@ function displayNPCMsg(sender,text) {
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
-// ─── PUBLIC API ──────────────────────────────────────────────
+// ─── PUBLIC API ──────────────────────────────────────────────-
 export function initGame({ canvasId, introScenes, onEndingCutscene }) {
   loadSettings(); loadProgress(); loadBestGhost();
   canvas=document.getElementById(canvasId); ctx=canvas.getContext('2d');
