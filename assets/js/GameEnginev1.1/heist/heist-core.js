@@ -746,7 +746,7 @@ export function initGame({ canvasId, introScenes, onEndingCutscene }) {
 
   window.addEventListener('keydown',e=>{
     if (e.key==='Escape') { if (inSettings) closeSettings(); else if (running||paused) openSettings(); return; }
-    if ((e.key==='z'||e.key==='Z')&&running&&!dead) { level++; if(level>=LEVELS.length) showEndScreen(); else initLevel(level); }
+    if ((e.key==='3'||e.key==='3')&&running&&!dead) { level++; if(level>=LEVELS.length) showEndScreen(); else initLevel(level); }
     if ((e.key==='r'||e.key==='R')&&running) {
       if (LEVELS[LEVELS.length-1]?._isBonus) LEVELS.pop();
       level=0; deaths=0; timerActive=false; pausedTimeAccum=0; currentRunScore=null; initLevel(0);
