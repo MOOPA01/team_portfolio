@@ -473,7 +473,7 @@ function finishLevel() {
   else { initLevel(level); running=true; loop(); }
 }
 
-// ─── PROCEDURAL BONUS FLOOR ──────────────────────────────────
+// ─── PROCEDURAL BONUS FLOOR ──────────────────────────────────-
 function showBonusFloorPrompt() {
   const el=document.createElement('div');
   el.id='bonus-prompt';
