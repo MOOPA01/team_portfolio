@@ -39,4 +39,3 @@ permalink: /heist
     const game = Game.main(environment);
 
 </script>
-
