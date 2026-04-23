@@ -3,10 +3,14 @@
 // Follows GameLevelDesert.js pattern
 // =============================================================
 
-import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
 import DialogueSystem from './essentials/DialogueSystem.js';
-import Coin from './Coin.js';
+import HeistBackground from './heist/HeistBackground.js';
+import HeistPlayer from './heist/HeistPlayer.js';
+import HeistNpc from './heist/HeistNpc.js';
+import HeistGem from './heist/HeistGem.js';
+import HeistGuard from './heist/HeistGuard.js';
+import HeistGoal from './heist/HeistGoal.js';
 
 const CELL = 32, COLS = 22, ROWS = 16;
 
@@ -152,9 +156,11 @@ class HeistLevel1 {
     gameEnv.heistGuards = []; // Level 1 has no guards
 
     this.classes = [
-      { class: Player, data: sprite_data_player },
-      { class: Npc, data: sprite_data_npc },
-      ...gemData.map(g => ({ class: Coin, data: g }))
+      { class: HeistBackground, data: { zIndex: 0 } },
+      { class: HeistGoal, data: { goalGrid: { x: 19, y: 6, w: 2, h: 3 }, zIndex: 5 } },
+      { class: HeistPlayer, data: { startGrid: { x: 1, y: 7 }, color: '#0ff0c3', zIndex: 20 } },
+      { class: HeistNpc, data: { ...sprite_data_npc, zIndex: 12 } },
+      ...gemData.map(g => ({ class: HeistGem, data: { ...g, zIndex: 15 } }))
     ];
   }
 }

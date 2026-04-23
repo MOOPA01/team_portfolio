@@ -3,9 +3,11 @@
 // Follows GameLevelDesert.js pattern
 // =============================================================
 
-import Player from './essentials/Player.js';
-import Npc from './essentials/Npc.js';
-import Coin from './Coin.js';
+import HeistBackground from './heist/HeistBackground.js';
+import HeistPlayer from './heist/HeistPlayer.js';
+import HeistGem from './heist/HeistGem.js';
+import HeistGuard from './heist/HeistGuard.js';
+import HeistGoal from './heist/HeistGoal.js';
 
 const CELL = 32, COLS = 22, ROWS = 16;
 
@@ -100,19 +102,22 @@ class HeistLevel4 {
 
     gameEnv.heistTotalGems = gems.length;
     gameEnv.heistGuards = [
-      { x: 7*CELL+CELL/2, y: 7*CELL+CELL/2, vx: 4.8, vy: 4.8, r: 10 },
-      { x: 14*CELL+CELL/2, y: 3*CELL+CELL/2, vx: -4.8, vy: 4.8, r: 10 },
-      { x: 2*CELL+CELL/2, y: 10*CELL+CELL/2, vx: 4.8, vy: -4.8, r: 10 },
-      { x: 19*CELL+CELL/2, y: 10*CELL+CELL/2, vx: -4.8, vy: -4.8, r: 10 },
-      { x: 11*CELL+CELL/2, y: 5*CELL+CELL/2, vx: 4.8, vy: 0, r: 10 },
-      { x: 9*CELL+CELL/2, y: 13*CELL+CELL/2, vx: -4.8, vy: 0, r: 10 },
-      { x: 16*CELL+CELL/2, y: 6*CELL+CELL/2, vx: 0, vy: 4.8, r: 10 },
-      { x: 5*CELL+CELL/2, y: 14*CELL+CELL/2, vx: 0, vy: -4.8, r: 10 },
+      { x: 7*CELL+CELL/2, y: 7*CELL+CELL/2, vx: 4.8, vy: 4.8, r: 10, gridStart: { x: 7, y: 7 } },
+      { x: 14*CELL+CELL/2, y: 3*CELL+CELL/2, vx: -4.8, vy: 4.8, r: 10, gridStart: { x: 14, y: 3 } },
+      { x: 2*CELL+CELL/2, y: 10*CELL+CELL/2, vx: 4.8, vy: -4.8, r: 10, gridStart: { x: 2, y: 10 } },
+      { x: 19*CELL+CELL/2, y: 10*CELL+CELL/2, vx: -4.8, vy: -4.8, r: 10, gridStart: { x: 19, y: 10 } },
+      { x: 11*CELL+CELL/2, y: 5*CELL+CELL/2, vx: 4.8, vy: 0, r: 10, gridStart: { x: 11, y: 5 } },
+      { x: 9*CELL+CELL/2, y: 13*CELL+CELL/2, vx: -4.8, vy: 0, r: 10, gridStart: { x: 9, y: 13 } },
+      { x: 16*CELL+CELL/2, y: 6*CELL+CELL/2, vx: 0, vy: 4.8, r: 10, gridStart: { x: 16, y: 6 } },
+      { x: 5*CELL+CELL/2, y: 14*CELL+CELL/2, vx: 0, vy: -4.8, r: 10, gridStart: { x: 5, y: 14 } },
     ];
 
     this.classes = [
-      { class: Player, data: sprite_data_player },
-      ...gemData.map(g => ({ class: Coin, data: g }))
+      { class: HeistBackground, data: { zIndex: 0 } },
+      { class: HeistGoal, data: { goalGrid: { x: 20, y: 1, w: 1, h: 2 }, zIndex: 5 } },
+      { class: HeistPlayer, data: { startGrid: { x: 1, y: 1 }, color: '#66e6ff', zIndex: 20 } },
+      ...gemData.map(g => ({ class: HeistGem, data: { ...g, zIndex: 15 } })),
+      ...gameEnv.heistGuards.map(guard => ({ class: HeistGuard, data: { ...guard, color: '#ff6d40', zIndex: 15 } }))
     ];
   }
 }
