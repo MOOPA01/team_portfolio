@@ -1,16 +1,14 @@
 // =============================================================
 // H.E.I.S.T.EXE Level 2: SECURITY HUB (Operative)
-// Follows GameLevelDesert.js pattern
+// Uses standard GameEngine Player, Npc, and Coin classes
 // =============================================================
 
+import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
-import HeistBackground from './heist/HeistBackground.js';
-import HeistPlayer from './heist/HeistPlayer.js';
-import HeistGem from './heist/HeistGem.js';
-import HeistGuard from './heist/HeistGuard.js';
-import HeistGoal from './heist/HeistGoal.js';
+import Coin from './Coin.js';
+import { COLS, ROWS } from './heist/HeistUtils.js';
 
-const CELL = 32, COLS = 22, ROWS = 16;
+const CELL = 32;
 
 function buildBorderWalls(cols, rows) {
   const w = [];
@@ -39,9 +37,9 @@ function buildWallSet(walls) {
 
 class HeistLevel2 {
   constructor(gameEnv) {
-    let width = gameEnv.innerWidth;
-    let height = gameEnv.innerHeight;
-    let path = gameEnv.path;
+    // CRITICAL: Set dimensions that HeistUtils and custom heist classes rely on
+    gameEnv.innerWidth = gameEnv.gameCanvas?.clientWidth || 704;
+    gameEnv.innerHeight = gameEnv.gameCanvas?.clientHeight || 512;
 
     const walls = buildBorderWalls(COLS, ROWS).concat([
       ...rectWall(2, 5, 7, 1), ...rectWall(11, 5, 9, 1),

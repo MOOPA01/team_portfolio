@@ -1,18 +1,14 @@
 // =============================================================
 // H.E.I.S.T.EXE Level 1: THE LOBBY (Rookie)
-// Follows GameLevelDesert.js pattern
+// Uses standard GameEngine Player, Npc, and Coin classes
 // =============================================================
 
+import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
-import DialogueSystem from './essentials/DialogueSystem.js';
-import HeistBackground from './heist/HeistBackground.js';
-import HeistPlayer from './heist/HeistPlayer.js';
-import HeistNpc from './heist/HeistNpc.js';
-import HeistGem from './heist/HeistGem.js';
-import HeistGuard from './heist/HeistGuard.js';
-import HeistGoal from './heist/HeistGoal.js';
+import Coin from './Coin.js';
+import { COLS, ROWS } from './heist/HeistUtils.js';
 
-const CELL = 32, COLS = 22, ROWS = 16;
+const CELL = 32;
 
 // Wall utility functions
 function buildBorderWalls(cols, rows) {
@@ -42,9 +38,9 @@ function buildWallSet(walls) {
 
 class HeistLevel1 {
   constructor(gameEnv) {
-    let width = gameEnv.innerWidth;
-    let height = gameEnv.innerHeight;
-    let path = gameEnv.path;
+    // CRITICAL: Set dimensions that HeistUtils and custom heist classes rely on
+    gameEnv.innerWidth = gameEnv.gameCanvas?.clientWidth || 704;
+    gameEnv.innerHeight = gameEnv.gameCanvas?.clientHeight || 512;
 
     // Store walls for collision detection
     const walls = buildBorderWalls(COLS, ROWS).concat([
@@ -58,45 +54,44 @@ class HeistLevel1 {
     gameEnv.heistLevel = 1;
     gameEnv.heistLevelName = 'THE LOBBY';
 
-    // Player data
-    const sprite_data_player = {
+    // Player data (GHOST)
+    const sprite_src_ghost = gameEnv.path + "/images/heist_mc.png";
+    const sprite_data_ghost = {
       id: 'ghost',
       greeting: 'You are GHOST, the elite infiltrator.',
-      src: null, // No sprite, just render as circle
-      SCALE_FACTOR: 1,
-      ANIMATION_RATE: 1,
-      INIT_POSITION: { x: 1 * CELL / 704, y: 7 * CELL / 512 },
+      src: sprite_src_ghost,
+      SCALE_FACTOR: 4,
+      STEP_FACTOR: 1000,
+      ANIMATION_RATE: 50,
+      INIT_POSITION: { x: 1 / COLS, y: 7 / ROWS },
       pixels: { height: 512, width: 704 },
-      down: { row: 0, start: 0, columns: 1 },
-      hitbox: { widthPercentage: 0, heightPercentage: 0 },
-      keypress: { up: 87, left: 65, down: 83, right: 68 }, // WASD
-      isHeistPlayer: true,
-      heistData: {
-        x: 1 * CELL + CELL / 2,
-        y: 7 * CELL + CELL / 2,
-        r: 9,
-        speed: 3.2
-      }
+      orientation: { rows: 3, columns: 4 },
+      down: { row: 0, start: 0, columns: 3 },
+      downRight: { row: 1, start: 0, columns: 3, rotate: Math.PI / 16 },
+      downLeft: { row: 2, start: 0, columns: 3, rotate: -Math.PI / 16 },
+      left: { row: 2, start: 0, columns: 3 },
+      right: { row: 1, start: 0, columns: 3 },
+      up: { row: 3, start: 0, columns: 3 },
+      upLeft: { row: 2, start: 0, columns: 3, rotate: Math.PI / 16 },
+      upRight: { row: 1, start: 0, columns: 3, rotate: -Math.PI / 16 },
+      hitbox: { widthPercentage: 0.45, heightPercentage: 0.4 },
+      keypress: { up: 87, left: 65, down: 83, right: 68 } // W, A, S, D
     };
 
-    // NPC data for Level 1
+    // NPC data (Protocol AI)
+    const sprite_src_npc = gameEnv.path + "/images/heist_npc.png";
+    const sprite_greet_npc = "Protocol active. State your concerns, operative.";
     const sprite_data_npc = {
       id: 'Protocol AI',
-      greeting: 'Protocol active. State your concerns, operative.',
-      src: null,
-      SCALE_FACTOR: 1,
-      ANIMATION_RATE: 1,
-      INIT_POSITION: { x: 10.5 * CELL / 704, y: 10.5 * CELL / 512 },
+      greeting: sprite_greet_npc,
+      src: sprite_src_npc,
+      SCALE_FACTOR: 4,
+      ANIMATION_RATE: 50,
       pixels: { height: 512, width: 704 },
-      down: { row: 0, start: 0, columns: 1 },
-      hitbox: { widthPercentage: 0, heightPercentage: 0 },
-      isHeistNPC: true,
-      heistData: {
-        x: 10.5 * CELL,
-        y: 10.5 * CELL,
-        r: 8,
-        color: '#ffdd00'
-      },
+      INIT_POSITION: { x: 10 / COLS, y: 10 / ROWS },
+      orientation: { rows: 3, columns: 4 },
+      down: { row: 0, start: 0, columns: 3 },
+      hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
       dialogues: [
         "Collect all data packages before extraction.",
         "Guards patrol in predictable patterns. Study their routes.",
@@ -111,56 +106,38 @@ class HeistLevel1 {
       },
       interact: function() {
         if (this.dialogueSystem) {
-          this.dialogueSystem.showDialogue(
-            this.dialogues[Math.floor(Math.random() * this.dialogues.length)],
-            'Protocol AI',
-            null
-          );
+          this.showRandomDialogue();
         }
       }
     };
 
-    // Gems (using Coin as base)
-    const gems = [
+    // Gem positions for Level 1 (13 total)
+    const gem_positions = [
       { x: 4, y: 2 }, { x: 8, y: 2 }, { x: 12, y: 2 }, { x: 16, y: 2 },
       { x: 2, y: 6 }, { x: 7, y: 6 }, { x: 11, y: 6 },
       { x: 4, y: 11 }, { x: 8, y: 12 }, { x: 13, y: 13 }, { x: 17, y: 11 },
       { x: 20, y: 2 }, { x: 20, y: 13 },
     ];
 
-    const gemData = gems.map(g => ({
-      id: `gem-${g.x}-${g.y}`,
-      INIT_POSITION: { x: g.x * CELL / 704, y: g.y * CELL / 512 },
+    const gemsData = gem_positions.map(pos => ({
+      id: `gem-${pos.x}-${pos.y}`,
+      INIT_POSITION: { x: pos.x / COLS, y: pos.y / ROWS },
       width: 12,
       height: 12,
       color: '#00c8ff',
-      value: 1,
-      isHeistGem: true,
-      heistData: {
-        x: g.x * CELL + CELL / 2,
-        y: g.y * CELL + CELL / 2,
-        r: 6,
-        color: '#00c8ff'
-      }
+      hitbox: { widthPercentage: 0.0, heightPercentage: 0.0 },
+      zIndex: 12,
+      value: 1
     }));
 
-    // Goal zone
-    gameEnv.heistGoal = {
-      x: 19 * CELL,
-      y: 6 * CELL,
-      w: 2 * CELL,
-      h: 3 * CELL
-    };
-
-    gameEnv.heistTotalGems = gems.length;
+    // Store game metadata
+    gameEnv.heistTotalGems = gem_positions.length;
     gameEnv.heistGuards = []; // Level 1 has no guards
 
     this.classes = [
-      { class: HeistBackground, data: { zIndex: 0 } },
-      { class: HeistGoal, data: { goalGrid: { x: 19, y: 6, w: 2, h: 3 }, zIndex: 5 } },
-      { class: HeistPlayer, data: { startGrid: { x: 1, y: 7 }, color: '#0ff0c3', zIndex: 20 } },
-      { class: HeistNpc, data: { ...sprite_data_npc, zIndex: 12 } },
-      ...gemData.map(g => ({ class: HeistGem, data: { ...g, zIndex: 15 } }))
+      { class: Player, data: sprite_data_ghost },
+      { class: Npc, data: sprite_data_npc },
+      ...gemsData.map(g => ({ class: Coin, data: g }))
     ];
   }
 }
