@@ -65,8 +65,9 @@ class HeistLevel1 {
       SCALE_FACTOR: 4,
       STEP_FACTOR: 1000,
       ANIMATION_RATE: 50,
-      INIT_POSITION: { x: 1 / COLS, y: 7 / ROWS },
       pixels: { height: 256, width: 256 },
+      INIT_POSITION: { x: 1 / COLS, y: 7 / ROWS },
+      /*
       orientation: { rows: 3, columns: 4 },
       down: { row: 0, start: 0, columns: 3 },
       downRight: { row: 1, start: 0, columns: 3, rotate: Math.PI / 16 },
@@ -76,6 +77,7 @@ class HeistLevel1 {
       up: { row: 3, start: 0, columns: 3 },
       upLeft: { row: 2, start: 0, columns: 3, rotate: Math.PI / 16 },
       upRight: { row: 1, start: 0, columns: 3, rotate: -Math.PI / 16 },
+      */
       hitbox: { widthPercentage: 0.45, heightPercentage: 0.4 },
       keypress: { up: 87, left: 65, down: 83, right: 68 } // W, A, S, D
     };
@@ -90,9 +92,9 @@ class HeistLevel1 {
       SCALE_FACTOR: 4,
       ANIMATION_RATE: 50,
       pixels: { height: 256, width: 256 },
-      INIT_POSITION: { x: 10 / COLS, y: 10 / ROWS },
-      orientation: { rows: 3, columns: 4 },
-      down: { row: 0, start: 0, columns: 3 },
+        INIT_POSITION: { x: 10 / COLS, y: 10 / ROWS },
+      //orientation: { rows: 3, columns: 4 },
+      //down: { row: 0, start: 0, columns: 3 },
       hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
       dialogues: [
         "Collect all data packages before extraction.",
