@@ -6,6 +6,11 @@
 import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
 import Coin from './Coin.js';
+import HeistBackground from './heist/HeistBackground.js';
+import HeistGoal from './heist/HeistGoal.js';
+import HeistPlayer from './heist/HeistPlayer.js';
+import HeistGem from './heist/HeistGem.js';
+import HeistGuard from './heist/HeistGuard.js';
 import { COLS, ROWS } from './heist/HeistUtils.js';
 
 const CELL = 32;
@@ -57,7 +62,7 @@ class HeistLevel3 {
       SCALE_FACTOR: 1,
       ANIMATION_RATE: 1,
       INIT_POSITION: { x: 1 * CELL / 704, y: 1 * CELL / 512 },
-      pixels: { height: 512, width: 704 },
+      pixels: { height: 256, width: 256 },
       down: { row: 0, start: 0, columns: 1 },
       hitbox: { widthPercentage: 0, heightPercentage: 0 },
       keypress: { up: 87, left: 65, down: 83, right: 68 },

@@ -6,6 +6,8 @@
 import Player from './essentials/Player.js';
 import Npc from './essentials/Npc.js';
 import Coin from './Coin.js';
+import HeistBackground from './heist/HeistBackground.js';
+import HeistGoal from './heist/HeistGoal.js';
 import { COLS, ROWS } from './heist/HeistUtils.js';
 
 const CELL = 32;
@@ -64,7 +66,7 @@ class HeistLevel1 {
       STEP_FACTOR: 1000,
       ANIMATION_RATE: 50,
       INIT_POSITION: { x: 1 / COLS, y: 7 / ROWS },
-      pixels: { height: 512, width: 704 },
+      pixels: { height: 256, width: 256 },
       orientation: { rows: 3, columns: 4 },
       down: { row: 0, start: 0, columns: 3 },
       downRight: { row: 1, start: 0, columns: 3, rotate: Math.PI / 16 },
@@ -87,7 +89,7 @@ class HeistLevel1 {
       src: sprite_src_npc,
       SCALE_FACTOR: 4,
       ANIMATION_RATE: 50,
-      pixels: { height: 512, width: 704 },
+      pixels: { height: 256, width: 256 },
       INIT_POSITION: { x: 10 / COLS, y: 10 / ROWS },
       orientation: { rows: 3, columns: 4 },
       down: { row: 0, start: 0, columns: 3 },
@@ -134,7 +136,22 @@ class HeistLevel1 {
     gameEnv.heistTotalGems = gem_positions.length;
     gameEnv.heistGuards = []; // Level 1 has no guards
 
+    // Goal zone data
+    const goal_data = {
+      id: 'extraction-point',
+      goalGrid: { x: 19, y: 6, w: 2, h: 3 }
+    };
+    gameEnv.heistGoal = goal_data.goalGrid;
+
+    // Background data
+    const background_data = {
+      id: 'background',
+      name: 'lobby'
+    };
+
     this.classes = [
+      { class: HeistBackground, data: background_data },
+      { class: HeistGoal, data: goal_data },
       { class: Player, data: sprite_data_ghost },
       { class: Npc, data: sprite_data_npc },
       ...gemsData.map(g => ({ class: Coin, data: g }))

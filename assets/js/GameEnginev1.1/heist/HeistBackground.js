@@ -74,7 +74,7 @@ export default class HeistBackground extends Character {
     if (!goal) return;
     const { width: cellWidth, height: cellHeight } = getCellSize(this.gameEnv);
     this.ctx.fillStyle = 'rgba(18, 180, 255, 0.35)';
-    this.ctx.fillRect(goal.x * cellWidth / 32, goal.y * cellHeight / 32, goal.w * cellWidth / 32, goal.h * cellHeight / 32);
+    this.ctx.fillRect(goal.x * cellWidth, goal.y * cellHeight, goal.w * cellWidth, goal.h * cellHeight);
   }
 
   drawLevelInfo() {

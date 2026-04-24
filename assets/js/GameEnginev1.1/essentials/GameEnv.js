@@ -130,6 +130,10 @@ class GameEnv {
         this.canvasId = `gameCanvas-${GameEnv.canvasCounter++}`;
         this.canvas = document.createElement('canvas');
         this.canvas.id = this.canvasId;
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.left = '0px';
+        this.canvas.style.top = '0px';
+        this.canvas.style.zIndex = '1';
         this.container.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     }

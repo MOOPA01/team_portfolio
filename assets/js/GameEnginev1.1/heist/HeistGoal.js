@@ -5,16 +5,29 @@ import { getCellSize, gridCenterToPixel } from './HeistUtils.js';
 export default class HeistGoal extends Character {
   constructor(data = {}, gameEnv) {
     super(data, gameEnv);
-    this.grid = data.goalGrid || { x: 0, y: 0, w: 1, h: 1 };
+    const fallbackGrid = (gameEnv && gameEnv.heistGoal) ? gameEnv.heistGoal : { x: 0, y: 0, w: 1, h: 1 };
+    this.grid = (data && (data.goalGrid || data.grid)) ? (data.goalGrid || data.grid) : fallbackGrid;
+    
+    // Final validation
+    if (!this.grid || typeof this.grid.w !== 'number' || typeof this.grid.h !== 'number') {
+      console.warn('HeistGoal: invalid grid dimensions, using fallback', this.grid);
+      this.grid = { x: 0, y: 0, w: 1, h: 1 };
+    }
+    
     this.color = data.color || 'rgba(18, 180, 255, 0.25)';
     this.borderColor = data.borderColor || '#12b4ff';
     this.zIndex = data.zIndex || 5;
     this.canvas.style.zIndex = String(this.zIndex);
     this.alertCooldown = 0;
-    this.resize();
   }
 
   resize() {
+    // Guard: ensure grid exists (needed because Character.resize() is called during construction before this.grid is set)
+    if (!this.grid || typeof this.grid.w !== 'number' || typeof this.grid.h !== 'number') {
+      this.grid = { x: 0, y: 0, w: 1, h: 1 };
+      return;
+    }
+    
     const center = { x: this.position.x + this.width / 2, y: this.position.y + this.height / 2 };
     const cellSize = getCellSize(this.gameEnv);
     this.width = Math.max(18, Math.round(cellSize.width * this.grid.w));
