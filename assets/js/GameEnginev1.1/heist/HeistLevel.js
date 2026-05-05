@@ -21,6 +21,8 @@ class HeistLevel {
     this.gameEnv = gameEnv;
     this.heistStarted = false;
     this.originalClear = null;
+    this.createdCanvas = false;
+    this.classes = [];
   }
 
   /**
@@ -28,38 +30,40 @@ class HeistLevel {
    * Assumes heist-shell DOM exists in heist.md.
    */
   initialize() {
-    // Get or create the canvas element that Heist expects
-    let canvas = document.getElementById('c');
-    
-    if (!canvas) {
-      // Create canvas if it doesn't exist, add to heist-shell
-      const shell = document.getElementById('heist-shell');
-      if (!shell) {
-        throw new Error('HeistLevel requires #heist-shell element in DOM');
-      }
-      canvas = document.createElement('canvas');
-      canvas.id = 'c';
-      shell.appendChild(canvas);
+    const shell = document.getElementById('heist-shell');
+    if (!shell) {
+      throw new Error('HeistLevel requires #heist-shell element in DOM');
     }
 
+    let canvas = this.gameEnv?.gameCanvas || document.getElementById('gameCanvas') || document.getElementById('c');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'gameCanvas';
+      shell.appendChild(canvas);
+      this.createdCanvas = true;
+    }
+
+    if (!this.gameEnv) {
+      throw new Error('HeistLevel requires a valid gameEnv instance');
+    }
+
+    this.gameEnv.gameCanvas = canvas;
+
     // Set canvas dimensions for heist
-    canvas.width = 704;  // heist constants
+    canvas.width = 704;
     canvas.height = 512;
 
-    // Prevent the GameEngine from clearing the canvas each frame
-    // The legacy Heist loop is responsible for rendering.
-    if (this.gameEnv && typeof this.gameEnv.clear === 'function') {
+    if (typeof this.gameEnv.clear === 'function') {
       this.originalClear = this.gameEnv.clear.bind(this.gameEnv);
       this.gameEnv.clear = () => {};
     }
 
-    // Initialize heist game with intro scenes
-    initGame({ 
-      canvasId: 'c', 
-      introScenes: INTRO_SCENES, 
-      onEndingCutscene: () => {} 
+    initGame({
+      canvasId: canvas.id,
+      introScenes: INTRO_SCENES,
+      onEndingCutscene: () => {},
     });
-    
+
     startGame();
     this.heistStarted = true;
   }
@@ -76,13 +80,19 @@ class HeistLevel {
    * Cleanup when level is destroyed
    */
   destroy() {
-    // Restore original clear function
     if (this.originalClear) {
       this.gameEnv.clear = this.originalClear;
       this.originalClear = null;
     }
-    
-    // Let GameEnv handle its own cleanup
+
+    if (this.createdCanvas) {
+      const canvas = document.getElementById('gameCanvas');
+      if (canvas && canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+      }
+      this.createdCanvas = false;
+    }
+
     if (this.gameEnv && typeof this.gameEnv.destroy === 'function') {
       this.gameEnv.destroy();
     }

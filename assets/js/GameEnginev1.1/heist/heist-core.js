@@ -2,9 +2,9 @@
 //  H.E.I.S.T.EXE  —  heist-core.js
 // =============================================================
 
+import { GameCore }        from '../essentials/Game.js';
 import { initNPCSystem }   from './heist-npc.js';
 import { initLeaderboard } from './heist-leaderboard.js';
-import { runMinigame }     from './heist-minigames.js';
 
 // ─── GRID CONSTANTS ──────────────────────────────────────────
 export const CELL = 32;
@@ -462,8 +462,7 @@ function winLevel() {
       saveBestGhost(bestGhostRun);
     }
   }
-  const mg=level;
-  setTimeout(()=>{ mg<3?runMinigame(mg,finishLevel):finishLevel(); },800);
+  setTimeout(()=>{ finishLevel(); },800);
 }
 
 function finishLevel() {

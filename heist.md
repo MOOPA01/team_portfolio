@@ -4,8 +4,7 @@ title: H.E.I.S.T.EXE
 permalink: /gamify/heist
 ---
 
-<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
-
+<div id="gameContainer">
 <div id="heist-shell">
 
   <button id="fullscreen-btn" onclick="voidToggleFullscreen()" title="Toggle fullscreen">
@@ -27,7 +26,7 @@ permalink: /gamify/heist
       <div class="hud-item">CAUGHT <span id="h-deaths">0</span></div>
     </div>
     <div id="canvas-wrap">
-      <canvas id="c"></canvas>
+      <canvas id="gameCanvas"></canvas>
     </div>
   </div>
 
@@ -141,6 +140,7 @@ permalink: /gamify/heist
     </div>
   </div>
 
+  </div>
 </div>
 
 <script type="module">
@@ -149,36 +149,17 @@ permalink: /gamify/heist
   window._pythonURI    = pythonURI;
   window._javaURI      = javaURI;
   window._fetchOptions = fetchOptions;
-</script>
-<script type="module">
-  import { initGame, startGame } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game-combined.js';
-  import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
-  import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
 
-  initGame({
-    canvasId:         'c',
-    introScenes:      INTRO_SCENES,
-    onEndingCutscene: showEndingCutscene,
-  });
+  import initHeistGame from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game-setup.js';
 
-  document.getElementById('start-btn').addEventListener('click', startGame);
-
-  window.voidToggleFullscreen = function () {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      document.getElementById('fs-icon-expand').style.display  = 'none';
-      document.getElementById('fs-icon-compress').style.display = '';
-    } else {
-      document.exitFullscreen();
-      document.getElementById('fs-icon-expand').style.display  = '';
-      document.getElementById('fs-icon-compress').style.display = 'none';
-    }
-  };
-  document.addEventListener('fullscreenchange', () => {
-    const inFs = !!document.fullscreenElement;
-    document.getElementById('fs-icon-expand').style.display  = inFs ? 'none' : '';
-    document.getElementById('fs-icon-compress').style.display = inFs ? '' : 'none';
+  initHeistGame({
+    path: '{{site.baseurl}}',
+    pythonURI,
+    javaURI,
+    fetchOptions,
+    gameContainer: document.getElementById('gameContainer'),
+    gameCanvas: document.getElementById('gameCanvas'),
+    disablePauseMenu: true,
+    disableContainerAdjustment: true,
   });
 </script>
