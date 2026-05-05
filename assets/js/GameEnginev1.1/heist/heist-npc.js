@@ -1,7 +1,9 @@
 // =============================================================
 //  H.E.I.S.T.EXE  —  heist-npc.js
-//  CIPHER AI — tries backend → Anthropic API → smart fallback
+//  CIPHER AI — uses AiNpc backend with smart fallback responses
 // =============================================================
+
+import AiNpc from '../essentials/AiNpc.js';
 
 const CIPHER_SYSTEM = `You are CIPHER, a shadowy intelligence operative and informant embedded inside AEGIS Financial Tower. You are helping GHOST — the world's most elusive thief — navigate the building and pull off the heist of the century.
 
@@ -13,6 +15,7 @@ class HeistNPC {
   constructor() {
     this.messageHistory = [];
     this.conversationHistory = []; // for API calls
+    this.aiNpcInstance = null;
   }
 
   addMessage(sender, text) {
@@ -23,65 +26,26 @@ class HeistNPC {
   async getResponse(userMessage) {
     this.conversationHistory.push({ role:'user', content: userMessage });
 
-    // 1. Try backend
+    // 1. Try AiNpc backend system first
     try {
-      const backendUrl = (window._pythonURI || 'http://localhost:8085') + '/api/ainpc/prompt';
-      const resp = await Promise.race([
-        fetch(backendUrl, {
-          ...(window._fetchOptions || {}),
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: userMessage,
-            session_id: 'ghost-cipher-lobby',
-            npc_type: 'heist intelligence',
-            expertise: 'heist intelligence',
-            knowledgeContext: CIPHER_SYSTEM,
-          })
-        }),
-        new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000))
-      ]);
-      if (resp.ok) {
-        const data = await resp.json();
-        const text = data?.response || data?.message;
-        if (text) {
-          this.conversationHistory.push({ role:'assistant', content: text });
-          return text;
-        }
+      const spriteData = {
+        id: 'cipher',
+        expertise: 'heist intelligence',
+        knowledgeBase: {},
+        chatHistory: this.conversationHistory
+      };
+      
+      const responseArea = document.createElement('div');
+      await AiNpc.sendPromptToBackend(spriteData, userMessage, responseArea);
+      
+      if (responseArea.textContent && responseArea.textContent !== 'Thinking...') {
+        const text = responseArea.textContent;
+        this.conversationHistory.push({ role:'assistant', content: text });
+        return text;
       }
-    } catch(e) { /* backend unavailable, try next */ }
+    } catch(e) { /* fall through to fallback */ }
 
-    // 2. Try Anthropic API directly (works if window._anthropicKey is set)
-    const apiKey = window._anthropicKey || window._ANTHROPIC_API_KEY;
-    if (apiKey) {
-      try {
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 200,
-            system: CIPHER_SYSTEM,
-            messages: this.conversationHistory,
-          })
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          const text = data?.content?.[0]?.text;
-          if (text) {
-            this.conversationHistory.push({ role:'assistant', content: text });
-            return text;
-          }
-        }
-      } catch(e) { /* fall through */ }
-    }
-
-    // 3. Smart contextual fallback — stays fully in character
+    // 2. Smart contextual fallback — stays fully in character
     const reply = this._smartFallback(userMessage);
     this.conversationHistory.push({ role:'assistant', content: reply });
     return reply;

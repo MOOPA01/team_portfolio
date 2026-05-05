@@ -151,13 +151,11 @@ permalink: /gamify/heist
   window._fetchOptions = fetchOptions;
 </script>
 <script type="module">
-  import { initGame, startGame } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-core.js';
+  import { initGame, startGame } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game-combined.js';
   import { INTRO_SCENES } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-1.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-2.js';
   import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-3.js';
   import { showEndingCutscene } from '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-level-4.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-npc.js';
-  import '{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.js';
 
   initGame({
     canvasId:         'c',
