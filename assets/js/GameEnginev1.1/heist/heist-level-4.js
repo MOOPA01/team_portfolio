@@ -3,13 +3,12 @@
 //  Sector: THE VAULT CORE  |  Difficulty: GHOST TIER
 // =============================================================
 
-const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
-const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await import(_coreUrl);
+import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } from './heist-core.js';
 
-registerLevel({
+const HEIST_LEVEL_4_DATA = {
   walls: buildBorderWalls(COLS, ROWS).concat([
     ...rectWall(2,2,6,4), ...rectWall(14,2,6,4),
-    ...rectWall(2,10,6,4),...rectWall(14,10,6,4),
+    ...rectWall(2,10,6,4), ...rectWall(14,10,6,4),
     ...rectWall(9,6,4,1), ...rectWall(9,9,4,1),
   ]),
   start: { x:1, y:7 },
@@ -31,7 +30,32 @@ registerLevel({
     {x:1*CELL+CELL/2, y:3*CELL+CELL/2,  vx:0,    vy:4.8},
     {x:20*CELL+CELL/2,y:12*CELL+CELL/2, vx:0,    vy:-4.8},
   ],
-});
+};
+
+registerLevel(HEIST_LEVEL_4_DATA);
+
+export const HEIST_LEVEL_4 = HEIST_LEVEL_4_DATA;
+
+export default class HeistLevel4 {
+  constructor(gameEnv) {
+    this.gameEnv = gameEnv;
+    this.levelData = HEIST_LEVEL_4_DATA;
+    this.classes = [];
+    this.meta = { title: 'THE VAULT CORE', difficulty: 'GHOST TIER' };
+  }
+
+  initialize() {
+    // Level-specific initialization can be added when the engine wrapper is ready.
+  }
+
+  update() {
+    // No active engine objects for legacy heist data.
+  }
+
+  destroy() {
+    // Cleanup if level-specific resources are added later.
+  }
+}
 
 const OUTRO_SCENES = [
   { label:'// VAULT CORE — FINAL SECTOR CLEARED',

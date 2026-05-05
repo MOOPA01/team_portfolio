@@ -3,12 +3,11 @@
 //  Sector: VAULT ANTECHAMBER  |  Difficulty: SPECIALIST
 // =============================================================
 
-const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
-const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await import(_coreUrl);
+import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } from './heist-core.js';
 
-registerLevel({
+const HEIST_LEVEL_3_DATA = {
   walls: buildBorderWalls(COLS, ROWS).concat([
-    ...rectWall(3,3,16,1),...rectWall(3,12,16,1),
+    ...rectWall(3,3,16,1), ...rectWall(3,12,16,1),
     ...rectWall(3,4,1,4), ...rectWall(3,9,1,3),
     ...rectWall(18,4,1,8),
     ...rectWall(6,6,8,1), ...rectWall(6,9,8,1),
@@ -31,4 +30,29 @@ registerLevel({
     {x:7*CELL+CELL/2, y:7*CELL+CELL/2,  vx:0,   vy:4.8},
     {x:14*CELL+CELL/2,y:8*CELL+CELL/2,  vx:3.39,vy:3.39,bounce:true},
   ],
-});
+};
+
+registerLevel(HEIST_LEVEL_3_DATA);
+
+export const HEIST_LEVEL_3 = HEIST_LEVEL_3_DATA;
+
+export default class HeistLevel3 {
+  constructor(gameEnv) {
+    this.gameEnv = gameEnv;
+    this.levelData = HEIST_LEVEL_3_DATA;
+    this.classes = [];
+    this.meta = { title: 'VAULT ANTECHAMBER', difficulty: 'SPECIALIST' };
+  }
+
+  initialize() {
+    // Level-specific initialization can be added when the engine wrapper is ready.
+  }
+
+  update() {
+    // No active engine objects for legacy heist data.
+  }
+
+  destroy() {
+    // Cleanup if level-specific resources are added later.
+  }
+}

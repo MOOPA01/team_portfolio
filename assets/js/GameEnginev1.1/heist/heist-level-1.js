@@ -3,15 +3,14 @@
 //  Sector: THE LOBBY  |  Difficulty: ROOKIE
 // =============================================================
 
-const _coreUrl = new URL('./heist-core.js', import.meta.url).href;
-const { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } = await import(_coreUrl);
+import { registerLevel, buildBorderWalls, rectWall, COLS, ROWS, CELL } from './heist-core.js';
 
-registerLevel({
+const HEIST_LEVEL_1_DATA = {
   walls: buildBorderWalls(COLS, ROWS).concat([
     ...rectWall(2,4,6,1), ...rectWall(10,4,5,1),
     ...rectWall(2,9,4,1), ...rectWall(8,9,5,1),
-    ...rectWall(15,6,1,5),...rectWall(5,7,2,1),
-    ...rectWall(12,11,3,1),...rectWall(18,3,2,3),
+    ...rectWall(15,6,1,5), ...rectWall(5,7,2,1),
+    ...rectWall(12,11,3,1), ...rectWall(18,3,2,3),
     ...rectWall(18,9,2,3),
   ]),
   start: { x:1, y:7 },
@@ -26,7 +25,32 @@ registerLevel({
     {x:20,y:2, color:'#ff00cc'},{x:20,y:13,color:'#00c8ff'},
   ],
   guards: [],
-});
+};
+
+registerLevel(HEIST_LEVEL_1_DATA);
+
+export const HEIST_LEVEL_1 = HEIST_LEVEL_1_DATA;
+
+export default class HeistLevel1 {
+  constructor(gameEnv) {
+    this.gameEnv = gameEnv;
+    this.levelData = HEIST_LEVEL_1_DATA;
+    this.classes = [];
+    this.meta = { title: 'THE LOBBY', difficulty: 'ROOKIE' };
+  }
+
+  initialize() {
+    // Level-specific initialization can be added when the engine wrapper is ready.
+  }
+
+  update() {
+    // No active engine objects for legacy heist data.
+  }
+
+  destroy() {
+    // Cleanup if level-specific resources are added later.
+  }
+}
 
 export const INTRO_SCENES = [
   { label:'// GHOST PROTOCOL — MISSION INIT',

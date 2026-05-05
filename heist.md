@@ -5,7 +5,6 @@ permalink: /gamify/heist
 ---
 
 <link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-game.css">
-<link rel="stylesheet" href="{{site.baseurl}}/assets/js/GameEnginev1.1/heist/heist-leaderboard.css">
 
 <div id="heist-shell">
 
